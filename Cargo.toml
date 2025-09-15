@@ -15,7 +15,7 @@ jsonwebtoken = "9.3.1"
 # Backend
 tokio = { version = "1.47.1", features = ["parking_lot", "rt-multi-thread", "signal", "fs", "net"] }
 surrealdb = { version = "2.3.7", features = ["kv-rocksdb"] }
-elysium_api = { path = "../elysium_api" }
+elysium_api = { git = "https://github.com/elysium-net/elysium_api.git" }
 
 # Logging & Utils
 tracing = "0.1.41"
