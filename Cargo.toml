@@ -1,0 +1,28 @@
+cargo-features = ["profile-rustflags"]
+
+[package]
+name = "elysium_server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Web
+tonic = { version = "0.14.2", default-features = false, features = ["server"] }
+tonic-web = "0.14.2"
+tonic-middleware = "0.4.0"
+jsonwebtoken = "9.3.1"
+
+# Backend
+tokio = { version = "1.47.1", features = ["parking_lot", "rt-multi-thread", "signal", "fs", "net"] }
+surrealdb = { version = "2.3.7", features = ["kv-rocksdb"] }
+elysium_api = { path = "../elysium_api" }
+
+# Logging & Utils
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+serde = { version = "1.0.219", features = ["derive"] }
+scc = "3.0.7"
+lettre = { version = "0.11.18", features = ["sendmail-transport"] }
+askama = "0.14.0"
+ahash = "0.8.11"
+

@@ -1,0 +1,31 @@
+2025/09/15-13:19:38.140755 4078 [ERROR] [db/version_set.cc:5773] Error in committing version edit to MANIFEST: 
+VersionEdit {
+  PrevLogNumber: 0
+  NextFileNumber: 179
+  LastSeq: 22297
+  ColumnFamily: 0
+}
+
+VersionEdit {
+  PrevLogNumber: 0
+  NextFileNumber: 179
+  LastSeq: 22297
+  ColumnFamily: 0
+}
+
+VersionEdit {
+  LogNumber: 175
+  PrevLogNumber: 0
+  NextFileNumber: 179
+  LastSeq: 22297
+  ColumnFamily: 0
+}
+
+VersionEdit {
+  PrevLogNumber: 0
+  NextFileNumber: 180
+  MinLogNumberToKeep: 175
+  LastSeq: 22297
+  ColumnFamily: 0
+}
+2025/09/15-13:19:38.141334 4078 [WARN] [db/db_impl/db_impl_open.cc:2313] DB::Open() failed: IO error: Failed to rename: test_db/000179.dbtmp to: test_db/CURRENT: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
