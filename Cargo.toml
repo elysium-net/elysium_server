@@ -1,0 +1,20 @@
+cargo-features = ["profile-rustflags"]
+
+[package]
+name = "elysium_server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.50.0", features = ["rt-multi-thread", "fs", "time", "parking_lot"] }
+tracing = { version = "0.1.44", default-features = false, features = ["std", "max_level_debug"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["std", "fmt", "smallvec", "ansi"] }
+
+tonic = { version = "0.14.5", default-features = false, features = ["server", "router"] }
+
+surrealdb = "3.0.4"
+
+jsonwebtoken = "10.3.0"
+argon2 = "0.6.0-rc.8"
+
+elysium_rust = { git = "https://github.com/elysium-net/elysium_proto.git" }
