@@ -47,9 +47,6 @@ fn main() {
         cfg::PRIVATE_AUTH_KEY.replace(|c| true, "*")
     );
 
-    log::info!("Initializing authentication...");
-    auth::init();
-
     log::info!("Initializing runtime...");
     tokio::runtime::Builder::new_multi_thread()
         .enable_alt_timer()
@@ -64,6 +61,9 @@ fn main() {
         .build()
         .expect("Failed to build tokio runtime")
         .block_on(async {
+            log::info!("Initializing authentication...");
+            auth::init().await;
+
             serve().await;
         });
 

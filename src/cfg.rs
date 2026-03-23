@@ -59,11 +59,10 @@ pub static LOG_TIME: LazyLock<bool> = env_or_default!("ELY_LOG_TIME", false);
 
 pub static PUBLIC_AUTH_KEY: LazyLock<String> = env_or_default!(
     "ELY_PUBLIC_AUTH_KEY",
-    "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgRwfev/a6jCzmnKoY9dbXKlsGe5IuIcVyZ69ha6kPFY2hRANCAAQ9seonYxNH0Khn9HzRmAoFjtZek+JB8yRX79G7DwmpmQzKtonEW7OpxOkaPycgLuaaWUl6WEkjG2udaiG86Qvb"
-        .to_string()
+    "./dummy-data/public-key.pem".to_string()
 );
 
 pub static PRIVATE_AUTH_KEY: LazyLock<String> = env_or_default!(
     "ELY_PRIVATE_AUTH_KEY",
-    "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEPbHqJ2MTR9CoZ/R80ZgKBY7WXpPiQfMkV+/Ruw8JqZkMyraJxFuzqcTpGj8nIC7mmllJelhJIxtrnWohvOkL2w==".to_string()
+    "./dummy-data/private-key.pem".to_string()
 );

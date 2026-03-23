@@ -15,7 +15,7 @@ const ARGON2_HASH_LEN: usize = 32;
 static ARGON2: OnceLock<Argon2> = OnceLock::new();
 static KEYS: OnceLock<(EncodingKey, DecodingKey)> = OnceLock::new();
 
-pub fn init() {
+pub async fn init() {
     ARGON2
         .set(Argon2::new(
             argon2::Algorithm::Argon2id,
@@ -25,11 +25,17 @@ pub fn init() {
         ))
         .expect("Failed to initialize Argon2");
 
+    let private = tokio::fs::read(cfg::PRIVATE_AUTH_KEY.as_str())
+        .await
+        .expect("Failed to read private EdDSA key");
+
+    let public = tokio::fs::read(cfg::PUBLIC_AUTH_KEY.as_str())
+        .await
+        .expect("Failed to read public EdDSA key");
+
     KEYS.set((
-        EncodingKey::from_ed_pem(cfg::PRIVATE_AUTH_KEY.as_bytes())
-            .expect("Failed to create argon2 encoding key"),
-        DecodingKey::from_ed_pem(cfg::PUBLIC_AUTH_KEY.as_bytes())
-            .expect("Failed to create argon2 decoding key"),
+        EncodingKey::from_ed_pem(&private).expect("Failed to create argon2 encoding key"),
+        DecodingKey::from_ed_pem(&public).expect("Failed to create argon2 decoding key"),
     ))
     .expect("Failed to initialize argon2 keys");
 }
