@@ -47,6 +47,10 @@ fn main() {
         cfg::PRIVATE_AUTH_KEY.replace(|c| true, "*")
     );
 
+    tracing::info!("Initializing authentication...");
+    auth::init();
+
+    tracing::info!("Initializing runtime...");
     tokio::runtime::Builder::new_multi_thread()
         .enable_alt_timer()
         .enable_io()
@@ -67,8 +71,10 @@ fn main() {
 async fn serve() {
     let addr = SocketAddr::from_str(cfg::ADDRESS.as_str()).expect("Failed to parse address");
 
+    tracing::info!("Initializing Server State...");
     let state = ServerState::new().await;
 
+    tracing::info!("Launching Server...");
     Server::builder()
         .add_service(UserServiceServer::new(UserService::new(state.clone())))
         .add_service(ChatServiceServer::new(ChatService::new(state.clone())))

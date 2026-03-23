@@ -6,20 +6,33 @@ use argon2::{Argon2, Params, PasswordVerifier, Version};
 use elysium_rust::common::v1::{Auth, ErrorCode};
 use elysium_rust::user::v1::{User, UserRole};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 use std::time::SystemTime;
 use tonic::Request;
 
 const ARGON2_HASH_LEN: usize = 32;
 
-static ARGON2: LazyLock<Argon2> = LazyLock::new(|| {
-    Argon2::new(
-        argon2::Algorithm::Argon2id,
-        Version::V0x13,
-        Params::new(19 * 1024, 2, 1, Some(ARGON2_HASH_LEN))
-            .expect("Failed to create Argon2 params"),
-    )
-});
+static ARGON2: OnceLock<Argon2> = OnceLock::new();
+static KEYS: OnceLock<(EncodingKey, DecodingKey)> = OnceLock::new();
+
+pub fn init() {
+    ARGON2
+        .set(Argon2::new(
+            argon2::Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(19 * 1024, 2, 1, Some(ARGON2_HASH_LEN))
+                .expect("Failed to create Argon2 params"),
+        ))
+        .expect("Failed to initialize Argon2");
+
+    KEYS.set((
+        EncodingKey::from_ed_pem(cfg::PRIVATE_AUTH_KEY.as_bytes())
+            .expect("Failed to create argon2 encoding key"),
+        DecodingKey::from_ed_pem(cfg::PUBLIC_AUTH_KEY.as_bytes())
+            .expect("Failed to create argon2 decoding key"),
+    ))
+    .expect("Failed to initialize argon2 keys");
+}
 
 pub async fn verify_role<T>(
     database: &Database,
@@ -42,16 +55,13 @@ pub async fn verify_role<T>(
 pub async fn verify<T>(database: &Database, req: &Request<T>) -> Result<User, Error> {
     let meta = req.metadata();
 
+    let (_, key) = keys();
+
     if let Some(token) = meta.get("Authorization") {
         let token = String::from_utf8_lossy(token.as_bytes());
-        let claim = jsonwebtoken::decode::<Auth>(
-            token.as_bytes(),
-            // TODO: Make this panic instantly, not after 1 auth
-            &DecodingKey::from_ed_pem(cfg::PUBLIC_AUTH_KEY.as_bytes())
-                .expect("Failed to decode Ed25519 key"),
-            &Validation::new(Algorithm::EdDSA),
-        )
-        .map_err(|_| Error::new(ErrorCode::Unauthorized, "Invalid token"))?;
+        let claim =
+            jsonwebtoken::decode::<Auth>(token.as_bytes(), key, &Validation::new(Algorithm::EdDSA))
+                .map_err(|_| Error::new(ErrorCode::Unauthorized, "Invalid token"))?;
 
         let now = SystemTime::UNIX_EPOCH
             .elapsed()
@@ -80,16 +90,12 @@ pub async fn auth(database: &Database, userid: String, password: String) -> Resu
             .as_secs() as i64,
     };
 
+    let (key, _) = keys();
+
     if let Some(user) = user {
         if verify_hash(password, user.password) {
-            jsonwebtoken::encode(
-                &Header::new(Algorithm::EdDSA),
-                &auth,
-                // TODO: Make this panic instantly, not after 1 auth
-                &EncodingKey::from_ed_pem(cfg::PRIVATE_AUTH_KEY.as_bytes())
-                    .expect("Invalid Ed25519 key"),
-            )
-            .map_err(|_| Error::new(ErrorCode::Internal, "Failed to encode token"))
+            jsonwebtoken::encode(&Header::new(Algorithm::EdDSA), &auth, key)
+                .map_err(|_| Error::new(ErrorCode::Internal, "Failed to encode token"))
         } else {
             Err(Error::new(ErrorCode::Unauthorized, "Invalid credentials"))
         }
@@ -98,25 +104,27 @@ pub async fn auth(database: &Database, userid: String, password: String) -> Resu
     }
 }
 
-fn hash(pass: String) -> String {
+fn hash(pass: String) -> Result<String, argon2::Error> {
+    let argon2 = argon2();
     let mut hash = [0; ARGON2_HASH_LEN];
 
     let salt = Salt::generate();
 
-    // TODO: Make this not panic
-    ARGON2
-        .hash_password_into(pass.as_bytes(), &salt, &mut hash)
-        .expect("Failed to hash password");
+    argon2.hash_password_into(pass.as_bytes(), &salt, &mut hash)?;
 
-    // TODO: Make this not panic
-    String::from_utf8(hash.to_vec())
-        .expect("Failed to convert hash to string")
-        .to_string()
+    Ok(String::from_utf8_lossy(pass.as_bytes()).to_string())
 }
 
 fn verify_hash(pass: String, hash: String) -> bool {
-    // TODO: Handle algorithm specific errors
-    ARGON2
+    argon2()
         .verify_password(pass.as_bytes(), hash.as_str())
         .is_ok()
+}
+
+fn argon2<'a>() -> &'a Argon2 {
+    ARGON2.get().expect("Argon2 not initialized yet")
+}
+
+fn keys<'a>() -> &'a (EncodingKey, DecodingKey) {
+    KEYS.get().expect("Keys not initialized yet")
 }
