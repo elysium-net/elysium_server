@@ -3,11 +3,11 @@ use crate::state::ServerState;
 use elysium_rust::chat::v1::chat_service_server::ChatServiceServer;
 use elysium_rust::resource::v1::resource_service_server::ResourceServiceServer;
 use elysium_rust::user::v1::user_service_server::UserServiceServer;
+use fastrace::collector::{Config, ConsoleReporter};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
 use tonic::transport::Server;
-use tracing::metadata::LevelFilter;
 
 mod auth;
 mod cfg;
@@ -20,37 +20,37 @@ mod user;
 fn main() {
     init_logger();
 
-    tracing::info!("Tracing logger initialized!");
+    log::info!("Tracing logger initialized!");
 
-    tracing::info!("########## ELYSIUM CONFIG ##########");
-    tracing::info!("MAX_IO_EVENTS_PER_TICK: {:?}", cfg::MAX_IO_EVENTS_PER_TICK);
-    tracing::info!("THREAD_KEEP_ALIVE: {:?}", cfg::THREAD_KEEP_ALIVE);
-    tracing::info!("GLOBAL_QUEUE_INTERVAL: {:?}", cfg::GLOBAL_QUEUE_INTERVAL);
-    tracing::info!("EVENT_INTERVAL: {:?}", cfg::EVENT_INTERVAL);
-    tracing::info!("WORKER_THREADS: {:?}", cfg::WORKER_THREADS);
-    tracing::info!("MAX_BLOCKING_THREADS: {:?}", cfg::MAX_BLOCKING_THREADS);
-    tracing::info!("DATABASE_ADDRESS: {:?}", cfg::DATABASE_ADDRESS);
-    tracing::info!("LOG_FILE_NAMES: {:?}", cfg::LOG_FILE_NAMES);
-    tracing::info!("LOG_TARGETS: {:?}", cfg::LOG_TARGETS);
-    tracing::info!("LOG_LEVEL: {:?}", cfg::LOG_LEVEL);
-    tracing::info!("LOG_THREADS: {:?}", cfg::LOG_THREADS);
-    tracing::info!("LOG_TIME: {:?}", cfg::LOG_TIME);
-    tracing::info!("MAX_ENCODING_MSG_SIZE: {:?}", cfg::MAX_ENCODING_MSG_SIZE);
-    tracing::info!("MAX_DECODING_MSG_SIZE: {:?}", cfg::MAX_DECODING_MSG_SIZE);
-    tracing::info!("ADDRESS: {:?}", cfg::ADDRESS);
-    tracing::info!(
+    log::info!("########## ELYSIUM CONFIG ##########");
+    log::info!("MAX_IO_EVENTS_PER_TICK: {:?}", cfg::MAX_IO_EVENTS_PER_TICK);
+    log::info!("THREAD_KEEP_ALIVE: {:?}", cfg::THREAD_KEEP_ALIVE);
+    log::info!("GLOBAL_QUEUE_INTERVAL: {:?}", cfg::GLOBAL_QUEUE_INTERVAL);
+    log::info!("EVENT_INTERVAL: {:?}", cfg::EVENT_INTERVAL);
+    log::info!("WORKER_THREADS: {:?}", cfg::WORKER_THREADS);
+    log::info!("MAX_BLOCKING_THREADS: {:?}", cfg::MAX_BLOCKING_THREADS);
+    log::info!("DATABASE_ADDRESS: {:?}", cfg::DATABASE_ADDRESS);
+    log::info!("LOG_FILE_NAMES: {:?}", cfg::LOG_FILE_NAMES);
+    log::info!("LOG_TARGETS: {:?}", cfg::LOG_TARGETS);
+    log::info!("LOG_LEVEL: {:?}", cfg::LOG_LEVEL);
+    log::info!("LOG_THREADS: {:?}", cfg::LOG_THREADS);
+    log::info!("LOG_TIME: {:?}", cfg::LOG_TIME);
+    log::info!("MAX_ENCODING_MSG_SIZE: {:?}", cfg::MAX_ENCODING_MSG_SIZE);
+    log::info!("MAX_DECODING_MSG_SIZE: {:?}", cfg::MAX_DECODING_MSG_SIZE);
+    log::info!("ADDRESS: {:?}", cfg::ADDRESS);
+    log::info!(
         "PUBLIC_AUTH_KEY: {:?}",
         cfg::PUBLIC_AUTH_KEY.replace(|c| true, "*")
     );
-    tracing::info!(
+    log::info!(
         "PRIVATE_AUTH_KEY: {:?}",
         cfg::PRIVATE_AUTH_KEY.replace(|c| true, "*")
     );
 
-    tracing::info!("Initializing authentication...");
+    log::info!("Initializing authentication...");
     auth::init();
 
-    tracing::info!("Initializing runtime...");
+    log::info!("Initializing runtime...");
     tokio::runtime::Builder::new_multi_thread()
         .enable_alt_timer()
         .enable_io()
@@ -66,15 +66,17 @@ fn main() {
         .block_on(async {
             serve().await;
         });
+
+    fastrace::flush();
 }
 
 async fn serve() {
     let addr = SocketAddr::from_str(cfg::ADDRESS.as_str()).expect("Failed to parse address");
 
-    tracing::info!("Initializing Server State...");
+    log::info!("Initializing Server State...");
     let state = ServerState::new().await;
 
-    tracing::info!("Launching Server...");
+    log::info!("Launching Server...");
     Server::builder()
         .add_service(UserServiceServer::new(UserService::new(state.clone())))
         .add_service(ChatServiceServer::new(ChatService::new(state.clone())))
@@ -85,19 +87,5 @@ async fn serve() {
 }
 
 fn init_logger() {
-    let logger = tracing_subscriber::FmtSubscriber::builder()
-        .pretty()
-        .with_file(*cfg::LOG_FILE_NAMES)
-        .with_target(*cfg::LOG_TARGETS)
-        .with_max_level(
-            LevelFilter::from_str(cfg::LOG_LEVEL.as_str()).expect("Failed to parse log level"),
-        )
-        .with_thread_ids(*cfg::LOG_THREADS)
-        .with_thread_names(*cfg::LOG_THREADS);
-
-    if !*cfg::LOG_TIME {
-        logger.without_time().init();
-    } else {
-        logger.init();
-    }
+    fastrace::set_reporter(ConsoleReporter, Config::default());
 }

@@ -121,7 +121,7 @@ fn verify_hash(pass: String, hash: String) -> bool {
         .is_ok()
 }
 
-fn argon2<'a>() -> &'a Argon2 {
+fn argon2<'a>() -> &'a Argon2<'a> {
     ARGON2.get().expect("Argon2 not initialized yet")
 }
 
