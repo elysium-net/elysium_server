@@ -6,6 +6,7 @@ use elysium_rust::user::v1::user_service_server::UserServiceServer;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
+use tokio::task::JoinSet;
 use tonic::transport::Server;
 use tracing::metadata::LevelFilter;
 
@@ -57,7 +58,10 @@ fn main() {
             tracing::info!("Initializing authentication...");
             auth::init().await;
 
-            serve().await;
+            tokio::select! {
+                _ = serve() => (),
+                _ = exit_signal() => (),
+            }
         });
 }
 
@@ -75,6 +79,14 @@ async fn serve() {
         .serve(addr)
         .await
         .expect("Failed to serve elysium service");
+}
+
+async fn exit_signal() {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("Failed to get Ctrl+C signal");
+
+    tracing::info!("Shutting down elysium...");
 }
 
 fn init_logger() {
