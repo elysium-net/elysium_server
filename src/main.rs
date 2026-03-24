@@ -71,8 +71,16 @@ async fn serve() {
     tracing::info!("Initializing Server State...");
     let state = ServerState::new().await;
 
+    tracing::info!("Creating reflection server...");
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(elysium_rust::FILE_DESCRIPTOR_SET)
+        .include_reflection_service(true)
+        .build_v1alpha()
+        .expect("Failed to build reflection server");
+
     tracing::info!("Serving Elysium at '{}'...", cfg::ADDRESS.as_str());
     Server::builder()
+        .add_service(reflection)
         .add_service(UserServiceServer::new(UserService::new(state.clone())))
         .add_service(ChatServiceServer::new(ChatService::new(state.clone())))
         .add_service(ResourceServiceServer::new(ResourceService::new(state)))
