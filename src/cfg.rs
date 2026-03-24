@@ -10,12 +10,6 @@ macro_rules! env_or_default {
     };
 }
 
-pub static MAX_DECODING_MSG_SIZE: LazyLock<usize> =
-    env_or_default!("ELY_MAX_DECODING_MSG_SIZE", 1024 * 1024 * 4);
-
-pub static MAX_ENCODING_MSG_SIZE: LazyLock<usize> =
-    env_or_default!("ELY_MAX_ENCODING_MSG_SIZE", 1024 * 1024 * 4);
-
 pub static ADDRESS: LazyLock<String> =
     env_or_default!("ELY_ADDRESS", "127.0.0.1:50051".to_string());
 
@@ -39,7 +33,7 @@ pub static DATABASE_USER: LazyLock<String> =
     env_or_default!("ELY_DATABASE_USER", "root".to_string());
 
 pub static DATABASE_PASSWORD: LazyLock<String> =
-    env_or_default!("ELY_DATABASE_PASSWORD", "".to_string());
+    env_or_default!("ELY_DATABASE_PASSWORD", "root".to_string());
 
 pub static DATABASE_NAMESPACE: LazyLock<String> =
     env_or_default!("ELY_DATABASE_NAMESPACE", "elysium".to_string());
