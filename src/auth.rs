@@ -2,7 +2,7 @@ use crate::database::Database;
 use crate::error::Error;
 use crate::{cfg, user};
 use argon2::password_hash::phc::Salt;
-use argon2::{Argon2, Params, PasswordVerifier, Version};
+use argon2::{Argon2, Params, PasswordHasher, PasswordVerifier, Version};
 use elysium_rust::common::v1::{Auth, ErrorCode};
 use elysium_rust::user::v1::{User, UserRole};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
@@ -110,15 +110,14 @@ pub async fn auth(database: &Database, userid: String, password: String) -> Resu
     }
 }
 
-fn hash(pass: String) -> Result<String, argon2::Error> {
+pub fn hash(pass: String) -> Result<String, argon2::password_hash::Error> {
     let argon2 = argon2();
-    let mut hash = [0; ARGON2_HASH_LEN];
 
     let salt = Salt::generate();
 
-    argon2.hash_password_into(pass.as_bytes(), &salt, &mut hash)?;
+    let hash = argon2.hash_password_with_salt(pass.as_bytes(), &salt)?;
 
-    Ok(String::from_utf8_lossy(pass.as_bytes()).to_string())
+    Ok(hash.to_string())
 }
 
 fn verify_hash(pass: String, hash: String) -> bool {

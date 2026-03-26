@@ -71,6 +71,11 @@ async fn serve() {
     tracing::info!("Initializing Server State...");
     let state = ServerState::new().await;
 
+    // Create initial admin if not present
+    user::create_admin(state.database())
+        .await
+        .expect("Failed to create admin user");
+
     tracing::info!("Creating reflection server...");
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(elysium_rust::FILE_DESCRIPTOR_SET)

@@ -11,6 +11,10 @@ impl Error {
             message: message.to_string(),
         })
     }
+
+    pub fn code(&self) -> ErrorCode {
+        ErrorCode::try_from(self.0.code).unwrap_or(ErrorCode::Internal)
+    }
 }
 
 impl Display for Error {

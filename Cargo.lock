@@ -938,7 +938,7 @@ dependencies = [
 [[package]]
 name = "elysium_rust"
 version = "0.1.0"
-source = "git+https://github.com/elysium-net/elysium_proto.git#d43ee4ec171f3c08213d18be9a99ae825c324435"
+source = "git+https://github.com/elysium-net/elysium_proto.git#95059fb49c433ec517edb2eed032b2d991e60c53"
 dependencies = [
  "prost",
  "serde",
@@ -1080,6 +1080,12 @@ name = "foldhash"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "form_urlencoded"
@@ -1451,9 +1457,7 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
- "allocator-api2",
- "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
 ]
 
 [[package]]
@@ -1461,6 +1465,11 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "headers"
@@ -2313,9 +2322,9 @@ dependencies = [
 
 [[package]]
 name = "num-conv"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf97ec579c3c42f953ef76dbf8d55ac91fb219dde70e49aa4a6b7d74e9919050"
+checksum = "c6673768db2d862beb9b39a78fdcb1a69439615d5794a1be50caa9bc92c81967"
 
 [[package]]
 name = "num-integer"
@@ -3797,11 +3806,11 @@ dependencies = [
 
 [[package]]
 name = "spade"
-version = "2.15.0"
+version = "2.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb313e1c8afee5b5647e00ee0fe6855e3d529eb863a0fdae1d60006c4d1e9990"
+checksum = "9699399fd9349b00b184f5635b074f9ec93afffef30c853f8c875b32c0f8c7fa"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "num-traits",
  "robust",
  "smallvec",

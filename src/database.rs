@@ -1,4 +1,4 @@
-use crate::cfg;
+use crate::{cfg, user};
 use std::ops::Deref;
 use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
@@ -29,7 +29,17 @@ impl Database {
             .await
             .expect("Failed to get into database");
 
-        Self { surreal }
+        let this = Self { surreal };
+
+        this.setup().await;
+
+        this
+    }
+
+    async fn setup(&self) {
+        self.query("DEFINE TABLE IF NOT EXISTS user SCHEMALESS;")
+            .await
+            .expect("Failed to setup user table");
     }
 }
 

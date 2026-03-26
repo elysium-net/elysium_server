@@ -1,17 +1,18 @@
+use crate::auth;
 use crate::database::Database;
 use crate::error::Error;
 use elysium_rust::common::v1::ErrorCode;
-use elysium_rust::user::v1::{User, UserProfile};
+use elysium_rust::user::v1::{User, UserProfile, UserRole};
 
 pub const TABLE: &str = "user";
 
 pub async fn create(database: &Database, user: User) -> Result<(), Error> {
-    if exists(database, user.id.as_str()).await? {
+    if exists(database, user.user_id.as_str()).await? {
         return Err(Error::new(ErrorCode::AlreadyExists, "User already exists"));
     }
 
     let _: Option<User> = database
-        .create((TABLE, user.id.as_str()))
+        .create((TABLE, user.user_id.as_str()))
         .content(user)
         .await?;
 
@@ -40,9 +41,44 @@ pub async fn exists(database: &Database, userid: &str) -> Result<bool, Error> {
 
 pub fn to_profile(user: User) -> UserProfile {
     UserProfile {
-        id: user.id,
+        user_id: user.user_id,
         username: user.username,
         role: user.role,
         icon: user.icon,
     }
+}
+
+pub async fn create_admin(database: &Database) -> Result<(), Error> {
+    if exists(database, "admin").await? {
+        match auth::auth(database, "admin".to_string(), "admin".to_string()).await {
+            Ok(_) => tracing::warn!(
+                "The initial 'admin' user has an unsecure password. Please change this immediately!"
+            ),
+
+            Err(err) => {
+                if err.code() != ErrorCode::Unauthorized {
+                    return Err(err);
+                }
+            }
+        }
+    } else {
+        create(
+            database,
+            User {
+                user_id: "admin".to_string(),
+                username: "admin".to_string(),
+                email: "".to_string(),
+                password: auth::hash("admin".to_string()).expect("Failed to hash password"),
+                role: UserRole::Admin as i32,
+                icon: None,
+            },
+        )
+        .await?;
+
+        tracing::info!(
+            "Created setup administrator 'admin' with password 'admin'. Please change this immediately!"
+        );
+    }
+
+    Ok(())
 }

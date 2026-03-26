@@ -57,7 +57,7 @@ impl UserService for Service {
     ) -> Result<Response<DeleteUserResponse>, Status> {
         let auth = auth::verify_role(self.state.database(), &request, UserRole::Admin).await;
 
-        let user = request.into_inner().id;
+        let user = request.into_inner().user_id;
 
         let resp = {
             if let Err(err) = auth {
@@ -101,7 +101,7 @@ impl UserService for Service {
         request: Request<GetUserRequest>,
     ) -> Result<Response<GetUserResponse>, Status> {
         let auth = auth::verify(self.state.database(), &request).await;
-        let user = request.into_inner().id;
+        let user = request.into_inner().user_id;
 
         let resp = {
             if let Err(err) = auth {
