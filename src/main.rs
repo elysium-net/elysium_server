@@ -6,7 +6,6 @@ use elysium_rust::user::v1::user_service_server::UserServiceServer;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
-use tokio::task::JoinSet;
 use tonic::transport::Server;
 use tracing::metadata::LevelFilter;
 
@@ -16,10 +15,14 @@ mod database;
 mod error;
 mod services;
 mod state;
+mod trace;
 mod user;
 
+#[cfg(test)]
+mod tests;
+
 fn main() {
-    init_logger();
+    trace::init_logger();
 
     tracing::info!("Tracing logger initialized!");
 
@@ -100,19 +103,4 @@ async fn exit_signal() {
         .expect("Failed to get Ctrl+C signal");
 
     tracing::info!("Shutting down elysium...");
-}
-
-fn init_logger() {
-    let mut builder = tracing_subscriber::FmtSubscriber::builder()
-        .with_file(*cfg::LOG_FILE_NAMES)
-        .with_target(*cfg::LOG_TARGETS)
-        .with_thread_names(*cfg::LOG_THREADS)
-        .with_thread_ids(*cfg::LOG_THREADS)
-        .with_max_level(LevelFilter::from_str(cfg::LOG_LEVEL.as_str()).expect("Invalid log level"));
-
-    if !*cfg::LOG_TIME {
-        builder.without_time().init();
-    } else {
-        builder.init();
-    }
 }

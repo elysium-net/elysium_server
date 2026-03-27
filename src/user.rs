@@ -1,8 +1,12 @@
-use crate::auth;
 use crate::database::Database;
 use crate::error::Error;
+use crate::{auth, cfg};
 use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::user::v1::{User, UserProfile, UserRole};
+use std::collections::HashMap;
+use surrealdb::Notification;
+use surrealdb::method::QueryStream;
+use tonic::codegen::tokio_stream::StreamExt;
 
 pub const TABLE: &str = "user";
 
@@ -29,10 +33,41 @@ pub async fn delete(database: &Database, userid: &str) -> Result<Option<()>, Err
     }
 }
 
+pub async fn update(database: &Database, user: User) -> Result<(), Error> {
+    if exists(database, &user.user_id).await? {
+        let _: Option<User> = database
+            .update((TABLE, user.user_id.as_str()))
+            .content(user)
+            .await?;
+
+        Ok(())
+    } else {
+        Err(Error::new(ErrorCode::NotFound, "User not found"))
+    }
+}
+
 pub async fn get(database: &Database, userid: &str) -> Result<Option<User>, Error> {
     let result: Option<User> = database.select((TABLE, userid)).await?;
 
     Ok(result)
+}
+
+pub async fn search(database: &Database, query: String) -> Result<Vec<UserProfile>, Error> {
+    let results = database
+        .query(
+            r#"
+        SELECT * FROM user
+        WHERE user_id CONTAINS $query
+           OR username CONTAINS $query
+        LIMIT $limit
+    "#,
+        )
+        .bind(("query", query))
+        .bind(("limit", *cfg::MAX_SEARCH_RESULTS))
+        .await?
+        .take::<Vec<User>>(0)?;
+
+    Ok(results.into_iter().map(to_profile).collect())
 }
 
 pub async fn exists(database: &Database, userid: &str) -> Result<bool, Error> {

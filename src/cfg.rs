@@ -35,8 +35,15 @@ pub static DATABASE_USER: LazyLock<String> =
 pub static DATABASE_PASSWORD: LazyLock<String> =
     env_or_default!("ELY_DATABASE_PASSWORD", "root".to_string());
 
-pub static DATABASE_NAMESPACE: LazyLock<String> =
-    env_or_default!("ELY_DATABASE_NAMESPACE", "elysium".to_string());
+pub static DATABASE_NAMESPACE: LazyLock<String> = env_or_default!(
+    "ELY_DATABASE_NAMESPACE",
+    // Use a test namespace in tests
+    if cfg!(test) {
+        "elysium-test".to_string()
+    } else {
+        "elysium".to_string()
+    }
+);
 
 pub static DATABASE_NAME: LazyLock<String> =
     env_or_default!("ELY_DATABASE_NAME", "database".to_string());
@@ -60,3 +67,5 @@ pub static PRIVATE_AUTH_KEY: LazyLock<String> = env_or_default!(
     "ELY_PRIVATE_AUTH_KEY",
     "./dummy-data/private-key.pem".to_string()
 );
+
+pub static MAX_SEARCH_RESULTS: LazyLock<usize> = env_or_default!("ELY_MAX_SEARCH_RESULTS", 50);

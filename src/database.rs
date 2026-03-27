@@ -1,4 +1,4 @@
-use crate::{cfg, user};
+use crate::cfg;
 use std::ops::Deref;
 use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::{Client, Ws};
@@ -28,6 +28,17 @@ impl Database {
             .use_db(cfg::DATABASE_NAME.as_str())
             .await
             .expect("Failed to get into database");
+
+        #[cfg(test)]
+        {
+            tracing::info!("Detected test environment. Clearing database...");
+
+            surreal
+                .query("REMOVE TABLE $user;")
+                .bind(("user", crate::user::TABLE))
+                .await
+                .expect("Failed to drop user table");
+        }
 
         let this = Self { surreal };
 

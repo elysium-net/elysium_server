@@ -2,6 +2,9 @@
 jobs = 1
 rustflags = ["--cfg", "tokio_unstable"]
 
+[env]
+RUST_TEST_THREADS = "1"
+
 [profile.dev]
 debug = 1
 codegen-units = 16
