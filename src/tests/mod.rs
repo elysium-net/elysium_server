@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tonic::Request;
 use tonic::metadata::MetadataKey;
 
+mod chat;
 mod user;
 
 fn request<T>(
