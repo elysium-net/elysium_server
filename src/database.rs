@@ -34,8 +34,12 @@ impl Database {
             tracing::info!("Detected test environment. Clearing database...");
 
             surreal
-                .query("REMOVE TABLE $user;")
-                .bind(("user", crate::user::TABLE))
+                .query(
+                    r#"
+REMOVE TABLE user;
+REMOVE TABLE channel;
+REMOVE TABLE message;"#,
+                )
                 .await
                 .expect("Failed to drop user table");
         }
@@ -48,9 +52,15 @@ impl Database {
     }
 
     async fn setup(&self) {
-        self.query("DEFINE TABLE IF NOT EXISTS user SCHEMALESS;")
-            .await
-            .expect("Failed to setup user table");
+        self.query(
+            r#"
+DEFINE TABLE IF NOT EXISTS user SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS channel SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS message SCHEMALESS;
+"#,
+        )
+        .await
+        .expect("Failed to setup user table");
     }
 }
 

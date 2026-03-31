@@ -6,9 +6,6 @@ use elysium_rust::user::v1::{User, UserProfile, UserRole};
 use std::collections::HashMap;
 use surrealdb::Notification;
 use surrealdb::method::QueryStream;
-use tonic::codegen::tokio_stream::StreamExt;
-
-pub const TABLE: &str = "user";
 
 pub async fn create(database: &Database, user: User) -> Result<(), Error> {
     if exists(database, user.user_id.as_str()).await? {
@@ -16,7 +13,7 @@ pub async fn create(database: &Database, user: User) -> Result<(), Error> {
     }
 
     let _: Option<User> = database
-        .create((TABLE, user.user_id.as_str()))
+        .create(("user", user.user_id.as_str()))
         .content(user)
         .await?;
 
@@ -25,7 +22,7 @@ pub async fn create(database: &Database, user: User) -> Result<(), Error> {
 
 pub async fn delete(database: &Database, userid: &str) -> Result<Option<()>, Error> {
     if exists(database, userid).await? {
-        let _: Option<User> = database.delete((TABLE, userid)).await?;
+        let _: Option<User> = database.delete(("user", userid)).await?;
 
         Ok(Some(()))
     } else {
@@ -36,7 +33,7 @@ pub async fn delete(database: &Database, userid: &str) -> Result<Option<()>, Err
 pub async fn update(database: &Database, user: User) -> Result<(), Error> {
     if exists(database, &user.user_id).await? {
         let _: Option<User> = database
-            .update((TABLE, user.user_id.as_str()))
+            .update(("user", user.user_id.as_str()))
             .content(user)
             .await?;
 
@@ -47,7 +44,7 @@ pub async fn update(database: &Database, user: User) -> Result<(), Error> {
 }
 
 pub async fn get(database: &Database, userid: &str) -> Result<Option<User>, Error> {
-    let result: Option<User> = database.select((TABLE, userid)).await?;
+    let result: Option<User> = database.select(("user", userid)).await?;
 
     Ok(result)
 }

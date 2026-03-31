@@ -11,10 +11,12 @@ use tracing::metadata::LevelFilter;
 
 mod auth;
 mod cfg;
+mod chat;
 mod database;
 mod error;
 mod services;
 mod state;
+mod time;
 mod trace;
 mod user;
 

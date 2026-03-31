@@ -3,7 +3,7 @@ use crate::tests;
 use elysium_rust::user::v1::user_service_server::UserService;
 use elysium_rust::user::v1::{
     AuthUserRequest, CreateUserRequest, DeleteUserRequest, GetUserRequest, SearchUsersRequest,
-    UpdateUserRequest, User, UserProfile, UserRole, auth_user_response, get_user_response,
+    UpdateUserRequest, User, UserRole, auth_user_response, get_user_response,
 };
 use tonic::Request;
 
