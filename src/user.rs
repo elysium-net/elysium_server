@@ -20,13 +20,13 @@ pub async fn create(database: &Database, user: User) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn delete(database: &Database, userid: &str) -> Result<Option<()>, Error> {
+pub async fn delete(database: &Database, userid: &str) -> Result<(), Error> {
     if exists(database, userid).await? {
         let _: Option<User> = database.delete(("user", userid)).await?;
 
-        Ok(Some(()))
+        Ok(())
     } else {
-        Ok(None)
+        Err(Error::new(ErrorCode::NotFound, "User not found"))
     }
 }
 

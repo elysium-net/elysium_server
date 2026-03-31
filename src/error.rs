@@ -12,6 +12,13 @@ impl Error {
         })
     }
 
+    pub fn invalid_argument(arg: impl Display) -> Self {
+        Self::new(
+            ErrorCode::InvalidFormat,
+            format!("Argument {arg} required but not given"),
+        )
+    }
+
     pub fn code(&self) -> ErrorCode {
         ErrorCode::try_from(self.0.code).unwrap_or(ErrorCode::Internal)
     }

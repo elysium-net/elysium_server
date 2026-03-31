@@ -77,7 +77,7 @@ pub async fn verify<T>(database: &Database, req: &Request<T>) -> Result<User, Er
         if claim.claims.exp > now as i64 {
             Err(Error::new(ErrorCode::Unauthorized, "Token expired"))
         } else {
-            user::get(database, &claim.claims.userid)
+            user::get(database, &claim.claims.user_id)
                 .await?
                 .ok_or(Error::new(ErrorCode::NotFound, "User not found"))
         }
@@ -86,10 +86,10 @@ pub async fn verify<T>(database: &Database, req: &Request<T>) -> Result<User, Er
     }
 }
 
-pub async fn auth(database: &Database, userid: String, password: String) -> Result<String, Error> {
-    let user = user::get(database, &userid).await?;
+pub async fn auth(database: &Database, user_id: String, password: String) -> Result<String, Error> {
+    let user = user::get(database, &user_id).await?;
     let auth = Auth {
-        userid,
+        user_id,
         exp: SystemTime::UNIX_EPOCH
             .elapsed()
             .expect("Failed to get current time")

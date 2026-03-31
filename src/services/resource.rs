@@ -20,7 +20,7 @@ impl Service {
 impl ResourceService for Service {
     async fn upload(
         &self,
-        request: Request<Streaming<UploadRequest>>,
+        _request: Request<Streaming<UploadRequest>>,
     ) -> Result<Response<UploadResponse>, Status> {
         todo!()
     }
@@ -29,7 +29,7 @@ impl ResourceService for Service {
 
     async fn download(
         &self,
-        request: Request<DownloadRequest>,
+        _request: Request<DownloadRequest>,
     ) -> Result<Response<Self::DownloadStream>, Status> {
         todo!()
     }

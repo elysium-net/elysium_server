@@ -6,8 +6,8 @@ use elysium_rust::user::v1::user_service_server::UserService;
 use elysium_rust::user::v1::{
     AuthUserRequest, AuthUserResponse, CreateUserRequest, CreateUserResponse, DeleteUserRequest,
     DeleteUserResponse, GetUserRequest, GetUserResponse, SearchUsersRequest, SearchUsersResponse,
-    UpdateUserAvatarRequest, UpdateUserAvatarResponse, UpdateUserRequest, UpdateUserResponse, User,
-    UserProfile, UserRole, auth_user_response, get_user_response,
+    UpdateUserAvatarRequest, UpdateUserAvatarResponse, UpdateUserRequest, UpdateUserResponse,
+    UserRole, auth_user_response, get_user_response,
 };
 use tonic::{Request, Response, Status};
 
@@ -19,6 +19,135 @@ impl Service {
     pub fn new(state: ServerState) -> Self {
         Self { state }
     }
+
+    async fn _auth_user(
+        &self,
+        request: Request<AuthUserRequest>,
+    ) -> Result<AuthUserResponse, Error> {
+        let AuthUserRequest { user_id, password } = request.into_inner();
+
+        let token = auth::auth(self.state.database(), user_id, password).await?;
+
+        Ok(AuthUserResponse {
+            result: Some(auth_user_response::Result::Token(token)),
+        })
+    }
+
+    async fn _create_user(
+        &self,
+        request: Request<CreateUserRequest>,
+    ) -> Result<CreateUserResponse, Error> {
+        let database = self.state.database();
+
+        auth::verify_role(database, &request, UserRole::Admin).await?;
+
+        let mut user = request
+            .into_inner()
+            .user
+            .ok_or(Error::invalid_argument("user"))?;
+
+        user.password = auth::hash(user.password).map_err(|err| {
+            Error::new(
+                ErrorCode::Internal,
+                format!("Hashing password failed: {err}"),
+            )
+        })?;
+
+        user::create(database, user).await?;
+
+        Ok(CreateUserResponse { error: None })
+    }
+
+    async fn _delete_user(
+        &self,
+        request: Request<DeleteUserRequest>,
+    ) -> Result<DeleteUserResponse, Error> {
+        let database = self.state.database();
+
+        auth::verify_role(database, &request, UserRole::Admin).await?;
+
+        let user = request.into_inner().user_id;
+
+        user::delete(database, &user).await?;
+
+        Ok(DeleteUserResponse { error: None })
+    }
+
+    async fn _update_user(
+        &self,
+        request: Request<UpdateUserRequest>,
+    ) -> Result<UpdateUserResponse, Error> {
+        let database = self.state.database();
+
+        auth::verify_role(database, &request, UserRole::Admin).await?;
+
+        let mut user = request
+            .into_inner()
+            .user
+            .ok_or(Error::invalid_argument("user"))?;
+
+        user.password = auth::hash(user.password).map_err(|err| {
+            Error::new(
+                ErrorCode::Internal,
+                format!("Hashing password failed: {err}"),
+            )
+        })?;
+
+        user::update(database, user).await?;
+
+        Ok(UpdateUserResponse { error: None })
+    }
+
+    async fn _update_user_avatar(
+        &self,
+        request: Request<UpdateUserAvatarRequest>,
+    ) -> Result<UpdateUserAvatarResponse, Error> {
+        let database = self.state.database();
+
+        auth::verify(database, &request).await?;
+
+        let UpdateUserAvatarRequest { user_id, avatar } = request.into_inner();
+        let avatar = avatar.ok_or(Error::invalid_argument("avatar"))?;
+
+        let mut user = user::get(database, &user_id)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
+
+        user.icon = Some(avatar);
+
+        user::update(database, user).await?;
+
+        Ok(UpdateUserAvatarResponse { error: None })
+    }
+
+    async fn _get_user(&self, request: Request<GetUserRequest>) -> Result<GetUserResponse, Error> {
+        let database = self.state.database();
+
+        auth::verify(database, &request).await?;
+        let user = request.into_inner().user_id;
+
+        let user = user::get(database, &user)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
+
+        Ok(GetUserResponse {
+            result: Some(get_user_response::Result::User(user::to_profile(user))),
+        })
+    }
+
+    async fn _search_user(
+        &self,
+        request: Request<SearchUsersRequest>,
+    ) -> Result<SearchUsersResponse, Error> {
+        let database = self.state.database();
+
+        auth::verify(database, &request).await?;
+        let query = request.into_inner().query;
+
+        let users = user::search(database, query).await?;
+
+        Ok(SearchUsersResponse { users, error: None })
+    }
 }
 
 #[tonic::async_trait]
@@ -27,17 +156,12 @@ impl UserService for Service {
         &self,
         request: Request<AuthUserRequest>,
     ) -> Result<Response<AuthUserResponse>, Status> {
-        let AuthUserRequest { user_id, password } = request.into_inner();
-
-        let resp = match auth::auth(self.state.database(), user_id, password).await {
-            Ok(token) => AuthUserResponse {
-                result: Some(auth_user_response::Result::Token(token)),
-            },
-
-            Err(err) => AuthUserResponse {
+        let resp = self
+            ._auth_user(request)
+            .await
+            .unwrap_or_else(|err| AuthUserResponse {
                 result: Some(auth_user_response::Result::Error(err.into())),
-            },
-        };
+            });
 
         Ok(Response::new(resp))
     }
@@ -46,28 +170,12 @@ impl UserService for Service {
         &self,
         request: Request<CreateUserRequest>,
     ) -> Result<Response<CreateUserResponse>, Status> {
-        let auth = auth::verify_role(self.state.database(), &request, UserRole::Admin).await;
-
-        let mut user = request
-            .into_inner()
-            .user
-            .ok_or(Status::invalid_argument("Request must contain a user"))?;
-
-        user.password =
-            auth::hash(user.password).map_err(|err| Status::internal(err.to_string()))?;
-
-        let resp = if let Err(err) = auth {
-            CreateUserResponse {
+        let resp = self
+            ._create_user(request)
+            .await
+            .unwrap_or_else(|err| CreateUserResponse {
                 error: Some(err.into()),
-            }
-        } else {
-            match user::create(self.state.database(), user).await {
-                Ok(_) => CreateUserResponse { error: None },
-                Err(err) => CreateUserResponse {
-                    error: Some(err.into()),
-                },
-            }
-        };
+            });
 
         Ok(Response::new(resp))
     }
@@ -76,27 +184,12 @@ impl UserService for Service {
         &self,
         request: Request<DeleteUserRequest>,
     ) -> Result<Response<DeleteUserResponse>, Status> {
-        let auth = auth::verify_role(self.state.database(), &request, UserRole::Admin).await;
-
-        let user = request.into_inner().user_id;
-
-        let resp = if let Err(err) = auth {
-            DeleteUserResponse {
+        let resp = self
+            ._delete_user(request)
+            .await
+            .unwrap_or_else(|err| DeleteUserResponse {
                 error: Some(err.into()),
-            }
-        } else {
-            match user::delete(self.state.database(), &user).await {
-                Ok(res) => match res {
-                    None => DeleteUserResponse {
-                        error: Some(Error::new(ErrorCode::NotFound, "User not found").into()),
-                    },
-                    Some(_) => DeleteUserResponse { error: None },
-                },
-                Err(err) => DeleteUserResponse {
-                    error: Some(err.into()),
-                },
-            }
-        };
+            });
 
         Ok(Response::new(resp))
     }
@@ -105,27 +198,12 @@ impl UserService for Service {
         &self,
         request: Request<UpdateUserRequest>,
     ) -> Result<Response<UpdateUserResponse>, Status> {
-        let auth = auth::verify_role(self.state.database(), &request, UserRole::Admin).await;
-        let mut user = request
-            .into_inner()
-            .user
-            .ok_or(Status::invalid_argument("Request must contain a user"))?;
-
-        user.password =
-            auth::hash(user.password).map_err(|err| Status::internal(err.to_string()))?;
-
-        let resp = if let Err(err) = auth {
-            UpdateUserResponse {
+        let resp = self
+            ._update_user(request)
+            .await
+            .unwrap_or_else(|err| UpdateUserResponse {
                 error: Some(err.into()),
-            }
-        } else {
-            match user::update(self.state.database(), user).await {
-                Ok(_) => UpdateUserResponse { error: None },
-                Err(err) => UpdateUserResponse {
-                    error: Some(err.into()),
-                },
-            }
-        };
+            });
 
         Ok(Response::new(resp))
     }
@@ -134,35 +212,12 @@ impl UserService for Service {
         &self,
         request: Request<UpdateUserAvatarRequest>,
     ) -> Result<Response<UpdateUserAvatarResponse>, Status> {
-        let auth = auth::verify(self.state.database(), &request).await;
-        let UpdateUserAvatarRequest { user_id, avatar } = request.into_inner();
-        let avatar = avatar.ok_or(Status::invalid_argument("Request must contain an avatar"))?;
-
-        let resp = if let Err(err) = auth {
-            UpdateUserAvatarResponse {
+        let resp = self
+            ._update_user_avatar(request)
+            .await
+            .unwrap_or_else(|err| UpdateUserAvatarResponse {
                 error: Some(err.into()),
-            }
-        } else {
-            match user::get(self.state.database(), &user_id).await {
-                Ok(user) => match user {
-                    Some(mut user) => {
-                        user.icon = Some(avatar);
-                        match user::update(self.state.database(), user).await {
-                            Ok(_) => UpdateUserAvatarResponse { error: None },
-                            Err(err) => UpdateUserAvatarResponse {
-                                error: Some(err.into()),
-                            },
-                        }
-                    }
-                    None => UpdateUserAvatarResponse {
-                        error: Some(Error::new(ErrorCode::NotFound, "User not found").into()),
-                    },
-                },
-                Err(err) => UpdateUserAvatarResponse {
-                    error: Some(err.into()),
-                },
-            }
-        };
+            });
 
         Ok(Response::new(resp))
     }
@@ -171,32 +226,12 @@ impl UserService for Service {
         &self,
         request: Request<GetUserRequest>,
     ) -> Result<Response<GetUserResponse>, Status> {
-        let auth = auth::verify(self.state.database(), &request).await;
-        let user = request.into_inner().user_id;
-
-        let resp = if let Err(err) = auth {
-            GetUserResponse {
+        let resp = self
+            ._get_user(request)
+            .await
+            .unwrap_or_else(|err| GetUserResponse {
                 result: Some(get_user_response::Result::Error(err.into())),
-            }
-        } else {
-            match user::get(self.state.database(), &user).await {
-                Ok(user) => match user {
-                    None => GetUserResponse {
-                        result: Some(get_user_response::Result::Error(
-                            Error::new(ErrorCode::NotFound, "User not found").into(),
-                        )),
-                    },
-
-                    Some(user) => GetUserResponse {
-                        result: Some(get_user_response::Result::User(user::to_profile(user))),
-                    },
-                },
-
-                Err(err) => GetUserResponse {
-                    result: Some(get_user_response::Result::Error(err.into())),
-                },
-            }
-        };
+            });
 
         Ok(Response::new(resp))
     }
@@ -205,23 +240,13 @@ impl UserService for Service {
         &self,
         request: Request<SearchUsersRequest>,
     ) -> Result<Response<SearchUsersResponse>, Status> {
-        let auth = auth::verify(self.state.database(), &request).await;
-        let query = request.into_inner().query;
-
-        let resp = if let Err(err) = auth {
-            SearchUsersResponse {
+        let resp = self
+            ._search_user(request)
+            .await
+            .unwrap_or_else(|err| SearchUsersResponse {
                 users: Vec::new(),
                 error: Some(err.into()),
-            }
-        } else {
-            match user::search(self.state.database(), query).await {
-                Ok(users) => SearchUsersResponse { users, error: None },
-                Err(err) => SearchUsersResponse {
-                    users: Vec::new(),
-                    error: Some(err.into()),
-                },
-            }
-        };
+            });
 
         Ok(Response::new(resp))
     }
