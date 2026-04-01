@@ -230,35 +230,56 @@ impl Config {
         } = self;
 
         format!(
-            r#"
+            r#"# Elysium Configuration File
+
 [service]
+# Path to the public EdDSA key used for JWT authentication.
 public_key = "{service_public_key}"
+# Path to the private EdDSA key used for JWT authentication.
 private_key = "{service_private_key}"
+# Maximum number of search results returned search requests.
 max_search_results = {service_max_search_results}
 
 [network]
+# Address of the gRPC service.
 address = "{net_address}"
 
 [runtime]
+# Maximum I/O events processed per tick.
 max_io_events_per_tick = {rt_max_io_events_per_tick}
+# Thread keep alive time in seconds.
 thread_keep_alive = {rt_thread_keep_alive}
+# Global queue interval.
 global_queue_interval = {rt_global_queue_interval}
+# Event interval.
 event_interval = {rt_event_interval}
+# Worker threads to use.
 worker_threads = {rt_worker_threads}
+# Maximum threads to spawn for blocking operations.
 max_blocking_threads = {rt_max_blocking_threads}
 
 [database]
+# Address to the SurrealDB database server.
 address = "{db_address}"
+# The user to log into SurrealDB with.
 user = "{db_user}"
+# Path to the file containing the password for the SurrealDB user.
 password = "{db_password}"
+# Namespace of the database to use.
 namespace = "{db_namespace}"
+# Name of the database to use.
 name = "{db_name}"
 
 [logging]
+# Should log records contain file names.
 file_names = {log_file_names}
+# Should log records containg target names.
 targets = {log_targets}
+# The most-verbose level of logging to start logging at.
 level = "{log_level}"
+# Should log records contain thread IDs and names.
 threads = {log_threads}
+# Should log records contain timestamps.
 time = {log_time}
         "#
         )
