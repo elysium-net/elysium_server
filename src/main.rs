@@ -7,7 +7,6 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
 use tonic::transport::Server;
-use tracing::metadata::LevelFilter;
 
 mod auth;
 mod cfg;

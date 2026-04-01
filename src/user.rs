@@ -2,10 +2,8 @@ use crate::database::Database;
 use crate::error::Error;
 use crate::{auth, cfg};
 use elysium_rust::common::v1::ErrorCode;
-use elysium_rust::user::v1::{User, UserProfile, UserRole};
-use std::collections::HashMap;
-use surrealdb::Notification;
-use surrealdb::method::QueryStream;
+use elysium_rust::user::v1::{UserProfile, UserRole};
+use elysium_rust::{ResourceId, User};
 
 pub async fn create(database: &Database, user: User) -> Result<(), Error> {
     if exists(database, user.user_id.as_str()).await? {
@@ -76,7 +74,7 @@ pub fn to_profile(user: User) -> UserProfile {
         user_id: user.user_id,
         username: user.username,
         role: user.role,
-        icon: user.icon,
+        icon: Some(user.icon.try_into().unwrap()),
     }
 }
 
@@ -102,7 +100,7 @@ pub async fn create_admin(database: &Database) -> Result<(), Error> {
                 email: "".to_string(),
                 password: auth::hash("admin".to_string()).expect("Failed to hash password"),
                 role: UserRole::Admin as i32,
-                icon: None,
+                icon: default_icon(),
             },
         )
         .await?;
@@ -113,4 +111,11 @@ pub async fn create_admin(database: &Database) -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+pub fn default_icon() -> ResourceId {
+    ResourceId {
+        key: "default_icon".to_string(),
+        namespace: "elysium".to_string(),
+    }
 }

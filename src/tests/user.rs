@@ -1,5 +1,6 @@
 use crate::services::user;
 use crate::tests;
+use crate::user::default_icon;
 use elysium_rust::user::v1::user_service_server::UserService;
 use elysium_rust::user::v1::{
     AuthUserRequest, CreateUserRequest, DeleteUserRequest, GetUserRequest, SearchUsersRequest,
@@ -18,7 +19,7 @@ async fn user() {
         email: "foobar".to_string(),
         password: "foobar".to_string(),
         role: UserRole::Supervisor as i32,
-        icon: None,
+        icon: Some(default_icon().into()),
     };
 
     tracing::info!("Creating user...");
@@ -81,7 +82,10 @@ async fn user() {
         .unwrap()
     {
         get_user_response::Result::User(got_user) => {
-            assert_eq!(got_user, crate::user::to_profile(user.clone()));
+            assert_eq!(
+                got_user,
+                crate::user::to_profile(user.clone().try_into().unwrap())
+            );
         }
         get_user_response::Result::Error(err) => panic!("{err:?}"),
     }
@@ -99,7 +103,10 @@ async fn user() {
         .into_inner();
 
     result.error.map(|err| panic!("{err:?}"));
-    assert_eq!(result.users[0], crate::user::to_profile(user.clone()));
+    assert_eq!(
+        result.users[0],
+        crate::user::to_profile(user.clone().try_into().unwrap())
+    );
 
     tracing::info!("Deleting user...");
     service

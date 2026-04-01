@@ -9,6 +9,7 @@ use elysium_rust::user::v1::{
     UpdateUserAvatarRequest, UpdateUserAvatarResponse, UpdateUserRequest, UpdateUserResponse,
     UserRole, auth_user_response, get_user_response,
 };
+use elysium_rust::{ResourceId, User};
 use tonic::{Request, Response, Status};
 
 pub struct Service {
@@ -41,10 +42,7 @@ impl Service {
 
         auth::verify_role(database, &request, UserRole::Admin).await?;
 
-        let mut user = request
-            .into_inner()
-            .user
-            .ok_or(Error::invalid_argument("user"))?;
+        let mut user = request.into_inner().user.ok_or(Error::invalid_argument())?;
 
         user.password = auth::hash(user.password).map_err(|err| {
             Error::new(
@@ -53,7 +51,7 @@ impl Service {
             )
         })?;
 
-        user::create(database, user).await?;
+        user::create(database, User::try_from(user)?).await?;
 
         Ok(CreateUserResponse { error: None })
     }
@@ -81,10 +79,7 @@ impl Service {
 
         auth::verify_role(database, &request, UserRole::Admin).await?;
 
-        let mut user = request
-            .into_inner()
-            .user
-            .ok_or(Error::invalid_argument("user"))?;
+        let mut user = request.into_inner().user.ok_or(Error::invalid_argument())?;
 
         user.password = auth::hash(user.password).map_err(|err| {
             Error::new(
@@ -93,7 +88,7 @@ impl Service {
             )
         })?;
 
-        user::update(database, user).await?;
+        user::update(database, User::try_from(user)?).await?;
 
         Ok(UpdateUserResponse { error: None })
     }
@@ -107,13 +102,13 @@ impl Service {
         auth::verify(database, &request).await?;
 
         let UpdateUserAvatarRequest { user_id, avatar } = request.into_inner();
-        let avatar = avatar.ok_or(Error::invalid_argument("avatar"))?;
+        let avatar = avatar.ok_or(Error::invalid_argument())?;
 
         let mut user = user::get(database, &user_id)
             .await?
             .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
 
-        user.icon = Some(avatar);
+        user.icon = ResourceId::try_from(avatar)?;
 
         user::update(database, user).await?;
 

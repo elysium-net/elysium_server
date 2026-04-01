@@ -3,8 +3,9 @@ use crate::error::Error;
 use crate::{cfg, user};
 use argon2::password_hash::phc::Salt;
 use argon2::{Argon2, Params, PasswordHasher, PasswordVerifier, Version};
-use elysium_rust::common::v1::{Auth, ErrorCode};
-use elysium_rust::user::v1::{User, UserRole};
+use elysium_rust::common::v1::ErrorCode;
+use elysium_rust::user::v1::UserRole;
+use elysium_rust::{Auth, User};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::sync::OnceLock;
 use std::time::SystemTime;
@@ -74,7 +75,7 @@ pub async fn verify<T>(database: &Database, req: &Request<T>) -> Result<User, Er
             .expect("Failed to get current time")
             .as_secs();
 
-        if claim.claims.exp > now as i64 {
+        if claim.claims.exp > now {
             Err(Error::new(ErrorCode::Unauthorized, "Token expired"))
         } else {
             user::get(database, &claim.claims.user_id)
@@ -93,7 +94,7 @@ pub async fn auth(database: &Database, user_id: String, password: String) -> Res
         exp: SystemTime::UNIX_EPOCH
             .elapsed()
             .expect("Failed to get current time")
-            .as_secs() as i64,
+            .as_secs(),
     };
 
     let (key, _) = keys();

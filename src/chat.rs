@@ -1,7 +1,8 @@
 use crate::database::Database;
 use crate::error::Error;
-use elysium_rust::chat::v1::{Channel, ChannelPermission, Message};
-use elysium_rust::common::v1::{ErrorCode, Timestamp};
+use elysium_rust::chat::v1::ChannelPermission;
+use elysium_rust::common::v1::ErrorCode;
+use elysium_rust::{Channel, Message, Timestamp};
 
 pub const ID_LENGTH: usize = 10;
 

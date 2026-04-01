@@ -3,12 +3,13 @@ use crate::state::ServerState;
 use crate::{auth, chat, time};
 use elysium_rust::chat::v1::chat_service_server::ChatService;
 use elysium_rust::chat::v1::{
-    Channel, ChannelPermission, CreateChannelRequest, CreateChannelResponse, DeleteMessageRequest,
-    DeleteMessageResponse, Message, ReadMessagesRequest, ReadMessagesResponse, SendMessageRequest,
+    ChannelPermission, CreateChannelRequest, CreateChannelResponse, DeleteMessageRequest,
+    DeleteMessageResponse, ReadMessagesRequest, ReadMessagesResponse, SendMessageRequest,
     SendMessageResponse, UpdateMessageRequest, UpdateMessageResponse, create_channel_response,
     send_message_response,
 };
 use elysium_rust::common::v1::ErrorCode;
+use elysium_rust::{Channel, Message};
 use tonic::{Request, Response, Status};
 
 pub struct Service {
@@ -42,7 +43,7 @@ impl Service {
         .await?;
 
         Ok(CreateChannelResponse {
-            result: Some(create_channel_response::Result::Channel(channel)),
+            result: Some(create_channel_response::Result::Channel(channel.into())),
         })
     }
 
@@ -55,7 +56,7 @@ impl Service {
         let user = auth::verify(database, &request).await?;
         let msg_args = request.into_inner();
 
-        let mut content = msg_args.content.ok_or(Error::invalid_argument("content"))?;
+        let mut content = msg_args.content.ok_or(Error::invalid_argument())?;
 
         content.created_at = Some(time::get_timestamp());
 
@@ -70,13 +71,13 @@ impl Service {
                     message_id: id,
                     user_id: user.user_id,
                     channel_id: msg_args.channel_id,
-                    content: Some(content),
+                    content: content.try_into()?,
                 },
             )
             .await?;
 
             Ok(SendMessageResponse {
-                result: Some(send_message_response::Result::Message(msg)),
+                result: Some(send_message_response::Result::Message(msg.into())),
             })
         } else {
             Err(Error::new(

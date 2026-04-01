@@ -12,11 +12,8 @@ impl Error {
         })
     }
 
-    pub fn invalid_argument(arg: impl Display) -> Self {
-        Self::new(
-            ErrorCode::InvalidFormat,
-            format!("Argument {arg} required but not given"),
-        )
+    pub fn invalid_argument() -> Self {
+        ErrorCode::InvalidFormat.into()
     }
 
     pub fn code(&self) -> ErrorCode {
@@ -38,6 +35,22 @@ impl Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl From<ErrorCode> for Error {
+    fn from(value: ErrorCode) -> Self {
+        Self::new(
+            value,
+            match value {
+                ErrorCode::Unspecified => "An unspecified error happened",
+                ErrorCode::Internal => "An internal error happened",
+                ErrorCode::Unauthorized => "You are not authorized to do this",
+                ErrorCode::NotFound => "The requested item could not be found",
+                ErrorCode::AlreadyExists => "The requested item already exists",
+                ErrorCode::InvalidFormat => "An invalid message was given",
+            },
+        )
+    }
+}
 
 impl From<elysium_rust::common::v1::Error> for Error {
     fn from(value: elysium_rust::common::v1::Error) -> Self {
