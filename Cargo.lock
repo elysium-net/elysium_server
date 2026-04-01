@@ -383,6 +383,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f781dba93de3a5ef6dc5b17c9958b208f6f3f021623b360fb605ea51ce443f10"
 
 [[package]]
+name = "boml"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b79c00a715fc2659fae951f58e435cf3abd1fa19ded14e82ba3848014d35b1ac"
+
+[[package]]
 name = "borsh"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -954,6 +960,7 @@ name = "elysium_server"
 version = "0.1.0"
 dependencies = [
  "argon2 0.6.0-rc.8",
+ "boml",
  "elysium_rust",
  "jsonwebtoken",
  "nanoid",

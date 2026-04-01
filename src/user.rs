@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::error::Error;
-use crate::{auth, cfg};
+use crate::{auth, config};
 use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::user::v1::{UserProfile, UserRole};
 use elysium_rust::{ResourceId, User};
@@ -48,6 +48,8 @@ pub async fn get(database: &Database, userid: &str) -> Result<Option<User>, Erro
 }
 
 pub async fn search(database: &Database, query: String) -> Result<Vec<UserProfile>, Error> {
+    let config = config::get();
+
     let results = database
         .query(
             r#"
@@ -58,7 +60,7 @@ pub async fn search(database: &Database, query: String) -> Result<Vec<UserProfil
     "#,
         )
         .bind(("query", query))
-        .bind(("limit", *cfg::MAX_SEARCH_RESULTS))
+        .bind(("limit", config.service_max_search_results))
         .await?
         .take::<Vec<User>>(0)?;
 

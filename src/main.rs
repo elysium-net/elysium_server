@@ -9,8 +9,8 @@ use std::time::Duration;
 use tonic::transport::Server;
 
 mod auth;
-mod cfg;
 mod chat;
+mod config;
 mod database;
 mod error;
 mod services;
@@ -23,38 +23,27 @@ mod user;
 mod tests;
 
 fn main() {
+    println!("Loading configuration...");
+    config::init();
+    let config = config::get();
+
     trace::init_logger();
+    tracing::info!("Logger initialized!");
 
-    tracing::info!("Tracing logger initialized!");
-
-    tracing::info!("############### ELYSIUM CONFIG START ###############");
-    tracing::info!("MAX_IO_EVENTS_PER_TICK: {}", *cfg::MAX_IO_EVENTS_PER_TICK);
-    tracing::info!("THREAD_KEEP_ALIVE: {}", *cfg::THREAD_KEEP_ALIVE);
-    tracing::info!("GLOBAL_QUEUE_INTERVAL: {}", *cfg::GLOBAL_QUEUE_INTERVAL);
-    tracing::info!("EVENT_INTERVAL: {}", *cfg::EVENT_INTERVAL);
-    tracing::info!("WORKER_THREADS: {}", *cfg::WORKER_THREADS);
-    tracing::info!("MAX_BLOCKING_THREADS: {}", *cfg::MAX_BLOCKING_THREADS);
-    tracing::info!("DATABASE_ADDRESS: {}", cfg::DATABASE_ADDRESS.as_str());
-    tracing::info!("LOG_FILE_NAMES: {}", *cfg::LOG_FILE_NAMES);
-    tracing::info!("LOG_TARGETS: {}", *cfg::LOG_TARGETS);
-    tracing::info!("LOG_LEVEL: {}", cfg::LOG_LEVEL.as_str());
-    tracing::info!("LOG_THREADS: {}", *cfg::LOG_THREADS);
-    tracing::info!("LOG_TIME: {}", *cfg::LOG_TIME);
-    tracing::info!("ADDRESS: {}", cfg::ADDRESS.as_str());
-    tracing::info!("PUBLIC_AUTH_KEY: {}", cfg::PUBLIC_AUTH_KEY.as_str());
-    tracing::info!("PRIVATE_AUTH_KEY: {}", cfg::PRIVATE_AUTH_KEY.as_str());
-    tracing::info!("################ ELYSIUM CONFIG END ################");
+    tracing::info!("########## CONFIGURATION START ##########");
+    println!("{config:#?}");
+    tracing::info!("########### CONFIGURATION END ###########");
 
     tracing::info!("Initializing runtime...");
     tokio::runtime::Builder::new_multi_thread()
         .enable_alt_timer()
         .enable_io()
-        .max_io_events_per_tick(*cfg::MAX_IO_EVENTS_PER_TICK)
-        .thread_keep_alive(Duration::from_secs(*cfg::THREAD_KEEP_ALIVE))
-        .global_queue_interval(*cfg::GLOBAL_QUEUE_INTERVAL)
-        .event_interval(*cfg::EVENT_INTERVAL)
-        .worker_threads(*cfg::WORKER_THREADS)
-        .max_blocking_threads(*cfg::MAX_BLOCKING_THREADS)
+        .max_io_events_per_tick(config.rt_max_io_events_per_tick)
+        .thread_keep_alive(Duration::from_secs(config.rt_thread_keep_alive))
+        .global_queue_interval(config.rt_global_queue_interval)
+        .event_interval(config.rt_event_interval)
+        .worker_threads(config.rt_worker_threads)
+        .max_blocking_threads(config.rt_max_blocking_threads)
         .thread_name("elysium-worker")
         .build()
         .expect("Failed to build tokio runtime")
@@ -70,7 +59,9 @@ fn main() {
 }
 
 async fn serve() {
-    let addr = SocketAddr::from_str(cfg::ADDRESS.as_str()).expect("Failed to parse address");
+    let config = config::get();
+
+    let addr = SocketAddr::from_str(config.net_address.as_str()).expect("Failed to parse address");
 
     tracing::info!("Initializing Server State...");
     let state = ServerState::new().await;
@@ -87,7 +78,7 @@ async fn serve() {
         .build_v1alpha()
         .expect("Failed to build reflection server");
 
-    tracing::info!("Serving Elysium at '{}'...", cfg::ADDRESS.as_str());
+    tracing::info!("Serving Elysium at '{}'...", config.net_address.as_str());
     Server::builder()
         .add_service(reflection)
         .add_service(UserServiceServer::new(UserService::new(state.clone())))

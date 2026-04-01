@@ -1,0 +1,31 @@
+
+[service]
+public_key = "./dev/public-key.pem"
+private_key = "./dev/private-key.pem"
+max_search_results = 50
+
+[network]
+address = "127.0.0.1:50051"
+
+[runtime]
+max_io_events_per_tick = 1024
+thread_keep_alive = 10
+global_queue_interval = 31
+event_interval = 61
+worker_threads = 4
+max_blocking_threads = 256
+
+[database]
+address = "127.0.0.1:8000"
+user = "root"
+password = "./dev/database-password"
+namespace = "elysium"
+name = "database"
+
+[logging]
+file_names = false
+targets = false
+level = "info"
+threads = false
+time = false
+        

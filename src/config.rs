@@ -1,0 +1,313 @@
+use std::path::Path;
+use std::sync::OnceLock;
+
+static CONFIG: OnceLock<Config> = OnceLock::new();
+
+pub fn init() {
+    let path = std::env::var("CONFIG_FILE").unwrap_or_else(|_| {
+        let path = if cfg!(debug_assertions) {
+            "./dev/config.toml"
+        } else {
+            "./config.toml"
+        }
+        .to_string();
+
+        if !std::fs::exists(&path).expect("Failed to check if config file exists") {
+            println!("Writing default config...");
+            std::fs::write(&path, Config::default().write())
+                .expect("Failed to write default config file");
+        }
+
+        path
+    });
+
+    CONFIG
+        .set(Config::parse(path))
+        .expect("Failed to set config");
+}
+
+pub fn get<'a>() -> &'a Config {
+    CONFIG.get().expect("Failed to get config")
+}
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub service_public_key: String,
+    pub service_private_key: String,
+    pub service_max_search_results: usize,
+    pub net_address: String,
+    pub rt_max_io_events_per_tick: usize,
+    pub rt_thread_keep_alive: u64,
+    pub rt_global_queue_interval: u32,
+    pub rt_event_interval: u32,
+    pub rt_worker_threads: usize,
+    pub rt_max_blocking_threads: usize,
+    pub db_address: String,
+    pub db_user: String,
+    pub db_password: String,
+    pub db_namespace: String,
+    pub db_name: String,
+    pub log_file_names: bool,
+    pub log_targets: bool,
+    pub log_level: String,
+    pub log_threads: bool,
+    pub log_time: bool,
+}
+
+impl Config {
+    pub fn parse(file: impl AsRef<Path>) -> Self {
+        let data = std::fs::read_to_string(file).expect("Failed to read config file");
+
+        let toml = boml::parse(&data).expect("Failed to parse config file");
+
+        let service = toml
+            .get_table("service")
+            .expect("Failed parsing 'service' table");
+
+        let service_public_key = service
+            .get_string("public_key")
+            .expect("Failed parsing 'service.public_key' field")
+            .to_string();
+
+        let service_private_key = service
+            .get_string("private_key")
+            .expect("Failed parsing 'service.private_key' field")
+            .to_string();
+
+        let service_max_search_results = service
+            .get_integer("max_search_results")
+            .expect("Failed parsing 'service.max_search_results' field")
+            as usize;
+
+        let network = toml
+            .get_table("network")
+            .expect("Failed parsing 'network' table");
+
+        let net_address = network
+            .get_string("address")
+            .expect("Failed parsing 'network.address' field")
+            .to_string();
+
+        let runtime = toml
+            .get_table("runtime")
+            .expect("Failed parsing 'runtime' table");
+
+        let rt_max_io_events_per_tick = runtime
+            .get_integer("max_io_events_per_tick")
+            .expect("Failed parsing 'runtime.max_io_events_per_tick' field")
+            as usize;
+
+        let rt_thread_keep_alive = runtime
+            .get_integer("thread_keep_alive")
+            .expect("Failed parsing 'runtime.thread_keep_alive' field")
+            as u64;
+
+        let rt_global_queue_interval = runtime
+            .get_integer("global_queue_interval")
+            .expect("Failed parsing 'runtime.global_queue_interval' field")
+            as u32;
+
+        let rt_event_interval = runtime
+            .get_integer("event_interval")
+            .expect("Failed parsing 'runtime.event_interval' field")
+            as u32;
+
+        let rt_worker_threads = runtime
+            .get_integer("worker_threads")
+            .expect("Failed parsing 'runtime.worker_threads' field")
+            as usize;
+
+        let rt_max_blocking_threads = runtime
+            .get_integer("max_blocking_threads")
+            .expect("Failed parsing 'runtime.max_blocking_threads' field")
+            as usize;
+
+        let database = toml
+            .get_table("database")
+            .expect("Failed parsing 'database' table");
+
+        let db_address = database
+            .get_string("address")
+            .expect("Failed parsing 'database.address' field")
+            .to_string();
+
+        let db_user = database
+            .get_string("user")
+            .expect("Failed parsing 'database.user' field")
+            .to_string();
+
+        let db_password_path = database
+            .get_string("password")
+            .expect("Failed parsing 'database.password' field")
+            .to_string();
+
+        let db_password = std::fs::read_to_string(db_password_path)
+            .expect("Failed to read database password")
+            .trim()
+            .to_string();
+
+        let db_namespace = database
+            .get_string("namespace")
+            .expect("Failed parsing 'database.namespace' field")
+            .to_string();
+
+        let db_name = database
+            .get_string("name")
+            .expect("Failed parsing 'database.name' field")
+            .to_string();
+
+        let logging = toml
+            .get_table("logging")
+            .expect("Failed parsing 'logging' table");
+
+        let log_file_names = logging
+            .get_boolean("file_names")
+            .expect("Failed parsing 'logging.file_names' field");
+
+        let log_targets = logging
+            .get_boolean("targets")
+            .expect("Failed parsing 'logging.targets' field");
+
+        let log_level = logging
+            .get_string("level")
+            .expect("Failed parsing 'logging.level' field")
+            .to_string();
+
+        let log_threads = logging
+            .get_boolean("threads")
+            .expect("Failed parsing 'logging.threads' field");
+
+        let log_time = logging
+            .get_boolean("time")
+            .expect("Failed parsing 'logging.time' field");
+
+        Config {
+            service_public_key,
+            service_private_key,
+            service_max_search_results,
+            net_address,
+            rt_max_io_events_per_tick,
+            rt_thread_keep_alive,
+            rt_global_queue_interval,
+            rt_event_interval,
+            rt_worker_threads,
+            rt_max_blocking_threads,
+            db_address,
+            db_user,
+            db_password,
+            db_namespace,
+            db_name,
+            log_file_names,
+            log_targets,
+            log_level,
+            log_threads,
+            log_time,
+        }
+    }
+
+    pub fn write(&self) -> String {
+        let Config {
+            service_public_key,
+            service_private_key,
+            service_max_search_results,
+            net_address,
+            rt_max_io_events_per_tick,
+            rt_thread_keep_alive,
+            rt_global_queue_interval,
+            rt_event_interval,
+            rt_worker_threads,
+            rt_max_blocking_threads,
+            db_address,
+            db_user,
+            db_password,
+            db_namespace,
+            db_name,
+            log_file_names,
+            log_targets,
+            log_level,
+            log_threads,
+            log_time,
+        } = self;
+
+        format!(
+            r#"
+[service]
+public_key = "{service_public_key}"
+private_key = "{service_private_key}"
+max_search_results = {service_max_search_results}
+
+[network]
+address = "{net_address}"
+
+[runtime]
+max_io_events_per_tick = {rt_max_io_events_per_tick}
+thread_keep_alive = {rt_thread_keep_alive}
+global_queue_interval = {rt_global_queue_interval}
+event_interval = {rt_event_interval}
+worker_threads = {rt_worker_threads}
+max_blocking_threads = {rt_max_blocking_threads}
+
+[database]
+address = "{db_address}"
+user = "{db_user}"
+password = "{db_password}"
+namespace = "{db_namespace}"
+name = "{db_name}"
+
+[logging]
+file_names = {log_file_names}
+targets = {log_targets}
+level = "{log_level}"
+threads = {log_threads}
+time = {log_time}
+        "#
+        )
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            service_public_key: if cfg!(debug_assertions) {
+                "./dev/public-key.pem"
+            } else {
+                "./secure/public-key.pem"
+            }
+            .to_string(),
+            service_private_key: if cfg!(debug_assertions) {
+                "./dev/private-key.pem"
+            } else {
+                "./secure/private-key.pem"
+            }
+            .to_string(),
+            service_max_search_results: 50,
+            net_address: "127.0.0.1:50051".to_string(),
+            rt_max_io_events_per_tick: 1024,
+            rt_thread_keep_alive: 10,
+            rt_global_queue_interval: 31,
+            rt_event_interval: 61,
+            rt_worker_threads: 4,
+            rt_max_blocking_threads: 256,
+            db_address: "127.0.0.1:8000".to_string(),
+            db_user: "root".to_string(),
+            db_password: if cfg!(debug_assertions) {
+                "./dev/database-password"
+            } else {
+                "./secure/database-password"
+            }
+            .to_string(),
+            db_namespace: if cfg!(test) {
+                "elysium-test"
+            } else {
+                "elysium"
+            }
+            .to_string(),
+            db_name: "database".to_string(),
+            log_file_names: false,
+            log_targets: false,
+            log_level: "info".to_string(),
+            log_threads: false,
+            log_time: false,
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::error::Error;
-use crate::{cfg, user};
+use crate::{config, user};
 use argon2::password_hash::phc::Salt;
 use argon2::{Argon2, Params, PasswordHasher, PasswordVerifier, Version};
 use elysium_rust::common::v1::ErrorCode;
@@ -17,6 +17,8 @@ static ARGON2: OnceLock<Argon2> = OnceLock::new();
 static KEYS: OnceLock<(EncodingKey, DecodingKey)> = OnceLock::new();
 
 pub async fn init() {
+    let config = config::get();
+
     ARGON2
         .set(Argon2::new(
             argon2::Algorithm::Argon2id,
@@ -26,11 +28,11 @@ pub async fn init() {
         ))
         .expect("Failed to initialize Argon2");
 
-    let private = tokio::fs::read(cfg::PRIVATE_AUTH_KEY.as_str())
+    let private = tokio::fs::read(config.service_private_key.as_str())
         .await
         .expect("Failed to read private EdDSA key");
 
-    let public = tokio::fs::read(cfg::PUBLIC_AUTH_KEY.as_str())
+    let public = tokio::fs::read(config.service_public_key.as_str())
         .await
         .expect("Failed to read public EdDSA key");
 
