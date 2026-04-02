@@ -5,26 +5,30 @@ use std::sync::OnceLock;
 static CONFIG: OnceLock<Config> = OnceLock::new();
 
 pub fn init() {
-    let path = std::env::var("CONFIG_FILE").unwrap_or_else(|_| {
-        let path = if cfg!(debug_assertions) {
-            "./dev/config.toml"
-        } else {
-            "./config.toml"
-        }
-        .to_string();
+    let config = if cfg!(test) {
+        Config::default()
+    } else {
+        let path = std::env::var("CONFIG_FILE").unwrap_or_else(|_| {
+            let path = if cfg!(debug_assertions) {
+                "./dev/config.toml"
+            } else {
+                "./config.toml"
+            }
+            .to_string();
 
-        if !std::fs::exists(&path).expect("Failed to check if config file exists") {
-            println!("Writing default config...");
-            std::fs::write(&path, Config::default().write())
-                .expect("Failed to write default config file");
-        }
+            if !std::fs::exists(&path).expect("Failed to check if config file exists") {
+                println!("Writing default config...");
+                std::fs::write(&path, Config::default().write())
+                    .expect("Failed to write default config file");
+            }
 
-        path
-    });
+            path
+        });
 
-    CONFIG
-        .set(Config::parse(path))
-        .expect("Failed to set config");
+        Config::parse(path)
+    };
+
+    CONFIG.set(config).expect("Failed to set config");
 }
 
 pub fn get<'a>() -> &'a Config {
