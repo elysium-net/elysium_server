@@ -7,6 +7,10 @@ public_key = "./dev/public-key.pem"
 private_key = "./dev/private-key.pem"
 # Maximum number of search results returned search requests.
 max_search_results = 50
+# Allow message deletion for users with at least this role.
+allow_message_delete = 2
+# Allow message updates for users with at least this role.
+allow_message_update = 2
 
 [network]
 # Address of the gRPC service.
@@ -34,7 +38,7 @@ user = "root"
 # Path to the file containing the password for the SurrealDB user.
 password = "./dev/database-password"
 # Namespace of the database to use.
-namespace = "elysium"
+namespace = "elysium-test"
 # Name of the database to use.
 name = "database"
 

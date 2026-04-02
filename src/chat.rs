@@ -2,7 +2,8 @@ use crate::database::Database;
 use crate::error::Error;
 use elysium_rust::chat::v1::ChannelPermission;
 use elysium_rust::common::v1::ErrorCode;
-use elysium_rust::{Channel, Message, Timestamp};
+use elysium_rust::{Channel, Content, Message, Timestamp};
+use surrealdb::opt::PatchOp;
 
 pub const ID_LENGTH: usize = 10;
 
@@ -91,6 +92,33 @@ LIMIT $limit;
         .take(0)?;
 
     Ok(messages)
+}
+
+pub async fn delete_message(database: &Database, message_id: &str) -> Result<(), Error> {
+    if msg_exists(database, message_id).await? {
+        let _: Option<Message> = database.delete(("message", message_id)).await?;
+
+        Ok(())
+    } else {
+        Err(Error::new(ErrorCode::NotFound, "Message not found"))
+    }
+}
+
+pub async fn update_message(
+    database: &Database,
+    message_id: &str,
+    content: Content,
+) -> Result<(), Error> {
+    if msg_exists(database, message_id).await? {
+        let _: Option<Message> = database
+            .update(("message", message_id))
+            .patch(PatchOp::replace("/content", content))
+            .await?;
+
+        Ok(())
+    } else {
+        Err(Error::new(ErrorCode::NotFound, "Message not found"))
+    }
 }
 
 pub async fn get_msg(database: &Database, message_id: &str) -> Result<Option<Message>, Error> {

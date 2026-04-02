@@ -1,4 +1,4 @@
-use elysium_rust::common::v1::Timestamp;
+use elysium_rust::Timestamp;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn get_timestamp() -> Timestamp {

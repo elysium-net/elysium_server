@@ -1,3 +1,4 @@
+use elysium_rust::user::v1::UserRole;
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -35,6 +36,8 @@ pub struct Config {
     pub service_public_key: String,
     pub service_private_key: String,
     pub service_max_search_results: usize,
+    pub service_allow_message_delete: i32,
+    pub service_allow_message_update: i32,
     pub net_address: String,
     pub rt_max_io_events_per_tick: usize,
     pub rt_thread_keep_alive: u64,
@@ -78,6 +81,16 @@ impl Config {
             .get_integer("max_search_results")
             .expect("Failed parsing 'service.max_search_results' field")
             as usize;
+
+        let service_allow_message_delete = service
+            .get_integer("allow_message_delete")
+            .expect("Failed parsing 'service.allow_message_delete' field")
+            as i32;
+
+        let service_allow_message_update = service
+            .get_integer("allow_message_update")
+            .expect("Failed parsing 'service.allow_message_update' field")
+            as i32;
 
         let network = toml
             .get_table("network")
@@ -189,6 +202,8 @@ impl Config {
             service_public_key,
             service_private_key,
             service_max_search_results,
+            service_allow_message_delete,
+            service_allow_message_update,
             net_address,
             rt_max_io_events_per_tick,
             rt_thread_keep_alive,
@@ -214,6 +229,8 @@ impl Config {
             service_public_key,
             service_private_key,
             service_max_search_results,
+            service_allow_message_delete,
+            service_allow_message_update,
             net_address,
             rt_max_io_events_per_tick,
             rt_thread_keep_alive,
@@ -243,6 +260,10 @@ public_key = "{service_public_key}"
 private_key = "{service_private_key}"
 # Maximum number of search results returned search requests.
 max_search_results = {service_max_search_results}
+# Allow message deletion for users with at least this role.
+allow_message_delete = {service_allow_message_delete}
+# Allow message updates for users with at least this role.
+allow_message_update = {service_allow_message_update}
 
 [network]
 # Address of the gRPC service.
@@ -306,6 +327,8 @@ impl Default for Config {
             }
             .to_string(),
             service_max_search_results: 50,
+            service_allow_message_delete: UserRole::Admin as i32,
+            service_allow_message_update: UserRole::Admin as i32,
             net_address: "127.0.0.1:50051".to_string(),
             rt_max_io_events_per_tick: 1024,
             rt_thread_keep_alive: 10,

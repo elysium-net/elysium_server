@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::state::ServerState;
-use crate::{auth, chat, time};
+use crate::{auth, chat, config, time};
 use elysium_rust::chat::v1::chat_service_server::ChatService;
 use elysium_rust::chat::v1::{
     ChannelPermission, CreateChannelRequest, CreateChannelResponse, DeleteMessageRequest,
@@ -9,7 +9,7 @@ use elysium_rust::chat::v1::{
     send_message_response, update_message_response,
 };
 use elysium_rust::common::v1::ErrorCode;
-use elysium_rust::{Channel, Message, Timestamp};
+use elysium_rust::{Channel, Content, Message, Timestamp};
 use tonic::{Request, Response, Status};
 
 pub struct Service {
@@ -90,7 +90,7 @@ impl Service {
 
         let mut content = msg_args.content.ok_or(Error::invalid_argument())?;
 
-        content.created_at = Some(time::get_timestamp());
+        content.created_at = Some(time::get_timestamp().into());
 
         let perm =
             chat::get_channel_member_perm(database, &msg_args.channel_id, &user.user_id).await?;
@@ -123,14 +123,66 @@ impl Service {
         &self,
         request: Request<DeleteMessageRequest>,
     ) -> Result<DeleteMessageResponse, Error> {
-        todo!()
+        let config = config::get();
+        let database = self.state.database();
+
+        let user = auth::verify(database, &request).await?;
+        let message = chat::get_msg(database, &request.into_inner().message_id)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "Message not found"))?;
+
+        let perm =
+            chat::get_channel_member_perm(database, &message.channel_id, &user.user_id).await?;
+
+        if (perm == ChannelPermission::Manager
+            || (perm == ChannelPermission::ReadWrite && message.user_id == user.user_id))
+            && user.role >= config.service_allow_message_delete
+        {
+            chat::delete_message(database, &message.message_id).await?;
+
+            Ok(DeleteMessageResponse { error: None })
+        } else {
+            Err(Error::new(
+                ErrorCode::Unauthorized,
+                "User has no permission to delete this message",
+            ))
+        }
     }
 
     async fn _update_message(
         &self,
         request: Request<UpdateMessageRequest>,
     ) -> Result<UpdateMessageResponse, Error> {
-        todo!()
+        let config = config::get();
+        let database = self.state.database();
+
+        let user = auth::verify(database, &request).await?;
+        let msg_args = request.into_inner();
+        let message = chat::get_msg(database, &msg_args.message_id)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "Message not found"))?;
+        let mut content = Content::try_from(msg_args.content.ok_or(Error::invalid_argument())?)?;
+
+        let perm =
+            chat::get_channel_member_perm(database, &message.channel_id, &user.user_id).await?;
+
+        if (perm == ChannelPermission::Manager
+            || (perm == ChannelPermission::ReadWrite && message.user_id == user.user_id))
+            && user.role >= config.service_allow_message_update
+        {
+            content.created_at = time::get_timestamp();
+
+            chat::update_message(database, &message.message_id, content).await?;
+
+            Ok(UpdateMessageResponse {
+                result: Some(update_message_response::Result::Message(message.into())),
+            })
+        } else {
+            Err(Error::new(
+                ErrorCode::Unauthorized,
+                "User has no permission to update this message",
+            ))
+        }
     }
 }
 
