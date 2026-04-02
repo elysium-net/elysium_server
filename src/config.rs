@@ -146,10 +146,14 @@ impl Config {
             .trim()
             .to_string();
 
-        let db_namespace = database
-            .get_string("namespace")
-            .expect("Failed parsing 'database.namespace' field")
-            .to_string();
+        let db_namespace = if cfg!(test) {
+            "elysium-test".to_string()
+        } else {
+            database
+                .get_string("namespace")
+                .expect("Failed parsing 'database.namespace' field")
+                .to_string()
+        };
 
         let db_name = database
             .get_string("name")

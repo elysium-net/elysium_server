@@ -70,7 +70,7 @@ pub async fn send(database: &Database, message: Message) -> Result<Message, Erro
 pub async fn read_messages(
     database: &Database,
     channel_id: String,
-    limit: usize,
+    limit: u32,
     start_at: Timestamp,
 ) -> Result<Vec<Message>, Error> {
     let messages: Vec<Message> = database
@@ -78,8 +78,8 @@ pub async fn read_messages(
             r#"
 SELECT *
 FROM message
-WHERE channel = $channel
-  AND timestamp < $cursor
+WHERE channel_id = $channel
+  AND content.created_at.millis < $cursor
 ORDER BY timestamp DESC
 LIMIT $limit;
 "#,

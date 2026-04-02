@@ -1,5 +1,5 @@
 use crate::state::ServerState;
-use crate::{auth, trace};
+use crate::{auth, config, trace};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tonic::Request;
 use tonic::metadata::MetadataKey;
@@ -27,6 +27,7 @@ async fn init() -> (ServerState, String) {
     static INIT: AtomicBool = AtomicBool::new(false);
 
     if !INIT.swap(true, Ordering::SeqCst) {
+        config::init();
         trace::init_logger();
         auth::init().await;
     }

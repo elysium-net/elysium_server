@@ -6,10 +6,10 @@ use elysium_rust::chat::v1::{
     ChannelPermission, CreateChannelRequest, CreateChannelResponse, DeleteMessageRequest,
     DeleteMessageResponse, ReadMessagesRequest, ReadMessagesResponse, SendMessageRequest,
     SendMessageResponse, UpdateMessageRequest, UpdateMessageResponse, create_channel_response,
-    send_message_response,
+    send_message_response, update_message_response,
 };
 use elysium_rust::common::v1::ErrorCode;
-use elysium_rust::{Channel, Message};
+use elysium_rust::{Channel, Message, Timestamp};
 use tonic::{Request, Response, Status};
 
 pub struct Service {
@@ -44,6 +44,38 @@ impl Service {
 
         Ok(CreateChannelResponse {
             result: Some(create_channel_response::Result::Channel(channel.into())),
+        })
+    }
+
+    async fn _read_messages(
+        &self,
+        request: Request<ReadMessagesRequest>,
+    ) -> Result<ReadMessagesResponse, Error> {
+        let database = self.state.database();
+
+        let user = auth::verify(database, &request).await?;
+
+        let msg_args = request.into_inner();
+
+        let channel = chat::get_channel(database, &msg_args.channel_id)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "Channel not found"))?;
+
+        if !channel.members.contains_key(&user.user_id) {
+            return Err(Error::new(ErrorCode::Unauthorized, "User not in channel"));
+        }
+
+        let messages = chat::read_messages(
+            database,
+            msg_args.channel_id,
+            msg_args.limit,
+            Timestamp::try_from(msg_args.start_time.ok_or(Error::invalid_argument())?)?,
+        )
+        .await?;
+
+        Ok(ReadMessagesResponse {
+            error: None,
+            messages: messages.into_iter().map(|m| m.into()).collect(),
         })
     }
 
@@ -86,6 +118,20 @@ impl Service {
             ))
         }
     }
+
+    async fn _delete_message(
+        &self,
+        request: Request<DeleteMessageRequest>,
+    ) -> Result<DeleteMessageResponse, Error> {
+        todo!()
+    }
+
+    async fn _update_message(
+        &self,
+        request: Request<UpdateMessageRequest>,
+    ) -> Result<UpdateMessageResponse, Error> {
+        todo!()
+    }
 }
 
 #[tonic::async_trait]
@@ -106,9 +152,17 @@ impl ChatService for Service {
 
     async fn read_messages(
         &self,
-        _request: Request<ReadMessagesRequest>,
+        request: Request<ReadMessagesRequest>,
     ) -> Result<Response<ReadMessagesResponse>, Status> {
-        todo!()
+        let resp = self
+            ._read_messages(request)
+            .await
+            .unwrap_or_else(|err| ReadMessagesResponse {
+                messages: Vec::new(),
+                error: Some(err.into()),
+            });
+
+        Ok(Response::new(resp))
     }
 
     async fn send_message(
@@ -127,15 +181,29 @@ impl ChatService for Service {
 
     async fn delete_message(
         &self,
-        _request: Request<DeleteMessageRequest>,
+        request: Request<DeleteMessageRequest>,
     ) -> Result<Response<DeleteMessageResponse>, Status> {
-        todo!()
+        let resp =
+            self._delete_message(request)
+                .await
+                .unwrap_or_else(|err| DeleteMessageResponse {
+                    error: Some(err.into()),
+                });
+
+        Ok(Response::new(resp))
     }
 
     async fn update_message(
         &self,
-        _request: Request<UpdateMessageRequest>,
+        request: Request<UpdateMessageRequest>,
     ) -> Result<Response<UpdateMessageResponse>, Status> {
-        todo!()
+        let resp =
+            self._update_message(request)
+                .await
+                .unwrap_or_else(|err| UpdateMessageResponse {
+                    result: Some(update_message_response::Result::Error(err.into())),
+                });
+
+        Ok(Response::new(resp))
     }
 }

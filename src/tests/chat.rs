@@ -2,11 +2,13 @@ use crate::services::chat;
 use crate::tests;
 use elysium_rust::chat::v1::chat_service_server::ChatService;
 use elysium_rust::chat::v1::{
-    ChannelPermission, Content, CreateChannelRequest, SendMessageRequest, content,
-    create_channel_response, send_message_response,
+    ChannelPermission, Content, CreateChannelRequest, ReadMessagesRequest, SendMessageRequest,
+    content, create_channel_response, send_message_response,
 };
 use elysium_rust::common::v1::Timestamp;
 use std::collections::HashMap;
+use std::time::SystemTime;
+use tonic::Response;
 
 #[tokio::test]
 async fn chat() {
@@ -69,4 +71,31 @@ async fn chat() {
         }
         send_message_response::Result::Error(err) => panic!("{err:?}"),
     }
+
+    tracing::info!("Reading messages...");
+    let read_messages = service
+        .read_messages(tests::request(
+            ReadMessagesRequest {
+                channel_id: channel.channel_id.clone(),
+                limit: 10,
+                start_time: Some(Timestamp {
+                    millis: SystemTime::UNIX_EPOCH.elapsed().unwrap().as_millis() as u64,
+                }),
+            },
+            [("Authorization", token.as_str())],
+        ))
+        .await
+        .unwrap()
+        .into_inner();
+
+    read_messages.error.map(|err| panic!("{err:?}"));
+
+    let msg = read_messages.messages[0].clone();
+
+    assert_eq!(
+        msg.content.unwrap().content.unwrap(),
+        content::Content::Text("Hello!".to_string())
+    );
+    assert_eq!(msg.channel_id, channel.channel_id);
+    assert_eq!(msg.user_id, "admin");
 }
