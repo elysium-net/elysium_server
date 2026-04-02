@@ -153,14 +153,9 @@ impl Config {
             .expect("Failed parsing 'database.user' field")
             .to_string();
 
-        let db_password_path = database
+        let db_password = database
             .get_string("password")
             .expect("Failed parsing 'database.password' field")
-            .to_string();
-
-        let db_password = std::fs::read_to_string(db_password_path)
-            .expect("Failed to read database password")
-            .trim()
             .to_string();
 
         let db_namespace = if cfg!(test) {
@@ -226,6 +221,13 @@ impl Config {
             log_threads,
             log_time,
         }
+    }
+
+    pub fn database_password(&self) -> String {
+        std::fs::read_to_string(&self.db_password)
+            .expect("Failed to read database password file")
+            .trim()
+            .to_string()
     }
 
     pub fn write(&self) -> String {

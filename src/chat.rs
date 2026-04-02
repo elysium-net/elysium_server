@@ -108,21 +108,21 @@ pub async fn update_message(
     database: &Database,
     message_id: &str,
     content: Content,
-) -> Result<(), Error> {
+) -> Result<Message, Error> {
     if msg_exists(database, message_id).await? {
-        let _: Option<Message> = database
+        let message: Option<Message> = database
             .update(("message", message_id))
             .patch(PatchOp::replace("/content", content))
             .await?;
 
-        Ok(())
+        message.ok_or(Error::new(ErrorCode::Internal, "Failed to update message"))
     } else {
         Err(Error::new(ErrorCode::NotFound, "Message not found"))
     }
 }
 
 pub async fn get_msg(database: &Database, message_id: &str) -> Result<Option<Message>, Error> {
-    let channel: Option<Message> = database.select(("channel", message_id)).await?;
+    let channel: Option<Message> = database.select(("message", message_id)).await?;
 
     Ok(channel)
 }

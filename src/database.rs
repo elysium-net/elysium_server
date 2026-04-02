@@ -20,7 +20,7 @@ impl Database {
         surreal
             .signin(Root {
                 username: config.db_user.to_string(),
-                password: config.db_password.to_string(),
+                password: config.database_password(),
             })
             .await
             .expect("Failed to login to database");

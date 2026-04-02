@@ -2,8 +2,9 @@ use crate::services::chat;
 use crate::tests;
 use elysium_rust::chat::v1::chat_service_server::ChatService;
 use elysium_rust::chat::v1::{
-    ChannelPermission, Content, CreateChannelRequest, ReadMessagesRequest, SendMessageRequest,
-    content, create_channel_response, send_message_response,
+    ChannelPermission, Content, CreateChannelRequest, DeleteMessageRequest, ReadMessagesRequest,
+    SendMessageRequest, UpdateMessageRequest, content, create_channel_response,
+    send_message_response, update_message_response,
 };
 use elysium_rust::common::v1::Timestamp;
 use std::collections::HashMap;
@@ -77,9 +78,8 @@ async fn chat() {
             ReadMessagesRequest {
                 channel_id: channel.channel_id.clone(),
                 limit: 10,
-                start_time: Some(Timestamp {
-                    millis: SystemTime::UNIX_EPOCH.elapsed().unwrap().as_millis() as u64,
-                }),
+                // Gets fixed internally
+                start_time: Some(Timestamp { millis: 0 }),
             },
             [("Authorization", token.as_str())],
         ))
@@ -97,4 +97,49 @@ async fn chat() {
     );
     assert_eq!(msg.channel_id, channel.channel_id);
     assert_eq!(msg.user_id, "admin");
+
+    tracing::info!("Updating message...");
+
+    match service
+        .update_message(tests::request(
+            UpdateMessageRequest {
+                message_id: msg.message_id.clone(),
+                content: Some(Content {
+                    // Gets fixed internally
+                    created_at: Some(Timestamp { millis: 0 }),
+                    content: Some(content::Content::Text("Hello World!".to_string())),
+                }),
+            },
+            [("Authorization", token.as_str())],
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+        .result
+        .unwrap()
+    {
+        update_message_response::Result::Message(msg) => {
+            assert_eq!(msg.channel_id, channel.channel_id);
+            assert_eq!(msg.user_id, "admin");
+            assert_eq!(
+                msg.content.unwrap().content.unwrap(),
+                content::Content::Text("Hello World!".to_string())
+            );
+        }
+        update_message_response::Result::Error(err) => panic!("{err:?}"),
+    }
+
+    tracing::info!("Deleting message...");
+    service
+        .delete_message(tests::request(
+            DeleteMessageRequest {
+                message_id: msg.message_id,
+            },
+            [("Authorization", token.as_str())],
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+        .error
+        .map(|err| panic!("{err:?}"));
 }

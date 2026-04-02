@@ -172,7 +172,7 @@ impl Service {
         {
             content.created_at = time::get_timestamp();
 
-            chat::update_message(database, &message.message_id, content).await?;
+            let message = chat::update_message(database, &message.message_id, content).await?;
 
             Ok(UpdateMessageResponse {
                 result: Some(update_message_response::Result::Message(message.into())),
