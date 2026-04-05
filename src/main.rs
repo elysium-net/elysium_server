@@ -13,11 +13,12 @@ mod chat;
 mod config;
 mod database;
 mod error;
+mod resource;
 mod services;
 mod state;
-mod time;
 mod trace;
 mod user;
+mod utils;
 
 #[cfg(test)]
 mod tests;

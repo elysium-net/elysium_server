@@ -7,6 +7,7 @@ edition = "2024"
 
 [dependencies]
 tokio = { version = "1.50.0", features = ["rt-multi-thread", "fs", "time", "signal", "parking_lot"] }
+tokio-util = { version = "0.7.18", features = ["io"] }
 
 tracing = { version = "0.1.44", features = ["max_level_info"] }
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["std", "ansi", "fmt"] }

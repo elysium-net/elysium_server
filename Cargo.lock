@@ -966,6 +966,7 @@ dependencies = [
  "nanoid",
  "surrealdb",
  "tokio",
+ "tokio-util",
  "tonic",
  "tonic-reflection",
  "tracing",

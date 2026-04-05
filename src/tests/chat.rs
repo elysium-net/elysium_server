@@ -8,7 +8,6 @@ use elysium_rust::chat::v1::{
 };
 use elysium_rust::common::v1::Timestamp;
 use std::collections::HashMap;
-use std::time::SystemTime;
 
 #[tokio::test]
 async fn chat() {

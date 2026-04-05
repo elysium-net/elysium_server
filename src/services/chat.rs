@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::state::ServerState;
-use crate::{auth, chat, config, time};
+use crate::{auth, chat, config, utils};
 use elysium_rust::chat::v1::chat_service_server::ChatService;
 use elysium_rust::chat::v1::{
     ChannelPermission, CreateChannelRequest, CreateChannelResponse, DeleteMessageRequest,
@@ -90,7 +90,7 @@ impl Service {
 
         let mut content = msg_args.content.ok_or(Error::invalid_argument())?;
 
-        content.created_at = Some(time::get_timestamp().into());
+        content.created_at = Some(utils::get_timestamp().into());
 
         let perm =
             chat::get_channel_member_perm(database, &msg_args.channel_id, &user.user_id).await?;
@@ -170,7 +170,7 @@ impl Service {
             || (perm == ChannelPermission::ReadWrite && message.user_id == user.user_id))
             && user.role >= config.service_allow_message_update
         {
-            content.created_at = time::get_timestamp();
+            content.created_at = utils::get_timestamp();
 
             let message = chat::update_message(database, &message.message_id, content).await?;
 

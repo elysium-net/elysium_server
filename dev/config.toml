@@ -11,6 +11,8 @@ max_search_results = 50
 allow_message_delete = 2
 # Allow message updates for users with at least this role.
 allow_message_update = 2
+# Directory where uploaded resources are stored.
+resource_dir = "./dev/resources"
 
 [network]
 # Address of the gRPC service.
@@ -38,7 +40,7 @@ user = "root"
 # Path to the file containing the password for the SurrealDB user.
 password = "./dev/database-password"
 # Namespace of the database to use.
-namespace = "elysium-test"
+namespace = "elysium"
 # Name of the database to use.
 name = "database"
 

@@ -28,6 +28,13 @@ pub fn init() {
         Config::parse(path)
     };
 
+    if std::fs::exists(&config.service_resource_dir)
+        .expect("Failed to check if resource directory exists")
+    {
+        std::fs::create_dir(&config.service_resource_dir)
+            .expect("Failed to create resource directory");
+    }
+
     CONFIG.set(config).expect("Failed to set config");
 }
 
@@ -42,6 +49,7 @@ pub struct Config {
     pub service_max_search_results: usize,
     pub service_allow_message_delete: i32,
     pub service_allow_message_update: i32,
+    pub service_resource_dir: String,
     pub net_address: String,
     pub rt_max_io_events_per_tick: usize,
     pub rt_thread_keep_alive: u64,
@@ -95,6 +103,11 @@ impl Config {
             .get_integer("allow_message_update")
             .expect("Failed parsing 'service.allow_message_update' field")
             as i32;
+
+        let service_resource_dir = service
+            .get_string("resource_dir")
+            .expect("Failed parsing 'service.resource_dir' field")
+            .to_string();
 
         let network = toml
             .get_table("network")
@@ -203,6 +216,7 @@ impl Config {
             service_max_search_results,
             service_allow_message_delete,
             service_allow_message_update,
+            service_resource_dir,
             net_address,
             rt_max_io_events_per_tick,
             rt_thread_keep_alive,
@@ -237,6 +251,7 @@ impl Config {
             service_max_search_results,
             service_allow_message_delete,
             service_allow_message_update,
+            service_resource_dir,
             net_address,
             rt_max_io_events_per_tick,
             rt_thread_keep_alive,
@@ -270,6 +285,8 @@ max_search_results = {service_max_search_results}
 allow_message_delete = {service_allow_message_delete}
 # Allow message updates for users with at least this role.
 allow_message_update = {service_allow_message_update}
+# Directory where uploaded resources are stored.
+resource_dir = "{service_resource_dir}"
 
 [network]
 # Address of the gRPC service.
@@ -335,6 +352,12 @@ impl Default for Config {
             service_max_search_results: 50,
             service_allow_message_delete: UserRole::Admin as i32,
             service_allow_message_update: UserRole::Admin as i32,
+            service_resource_dir: if cfg!(debug_assertions) {
+                "./dev/resources"
+            } else {
+                "./resources"
+            }
+            .to_string(),
             net_address: "127.0.0.1:50051".to_string(),
             rt_max_io_events_per_tick: 1024,
             rt_thread_keep_alive: 10,
