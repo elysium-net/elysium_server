@@ -1,5 +1,5 @@
 use crate::state::ServerState;
-use crate::user;
+use crate::{auth, user};
 use elysium_rust::User;
 use elysium_rust::user::v1::UserRole;
 
@@ -37,7 +37,8 @@ REMOVE TABLE message;"#,
             user_id: NEW_USER_NAME.to_string(),
             username: NEW_USER_NAME.to_string(),
             email: "foo@bar.baz".to_string(),
-            password: NEW_USER_PASS.to_string(),
+            password: auth::hash(NEW_USER_PASS.to_string())
+                .expect("Failed to hash new user password"),
             role: UserRole::UserUnspecified as i32,
             icon: user::default_icon(),
         },
@@ -52,7 +53,8 @@ REMOVE TABLE message;"#,
             user_id: SUPERVISOR_NAME.to_string(),
             username: SUPERVISOR_NAME.to_string(),
             email: "foo@bar.baz".to_string(),
-            password: SUPERVISOR_PASS.to_string(),
+            password: auth::hash(SUPERVISOR_PASS.to_string())
+                .expect("Failed to hash supervisor password"),
             role: UserRole::Supervisor as i32,
             icon: user::default_icon(),
         },
@@ -67,7 +69,7 @@ REMOVE TABLE message;"#,
             user_id: ADMIN_NAME.to_string(),
             username: ADMIN_NAME.to_string(),
             email: "foo@bar.baz".to_string(),
-            password: ADMIN_PASS.to_string(),
+            password: auth::hash(ADMIN_PASS.to_string()).expect("Failed to hash admin password"),
             role: UserRole::Admin as i32,
             icon: user::default_icon(),
         },
