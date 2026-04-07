@@ -20,9 +20,6 @@ mod trace;
 mod user;
 mod utils;
 
-#[cfg(test)]
-mod tests;
-
 fn main() {
     println!("Loading configuration...");
     config::init();
@@ -31,9 +28,8 @@ fn main() {
     trace::init_logger();
     tracing::info!("Logger initialized!");
 
-    tracing::info!("########## CONFIGURATION START ##########");
+    tracing::info!("########## CONFIGURATION ##########");
     println!("{config:#?}");
-    tracing::info!("########### CONFIGURATION END ###########");
 
     tracing::info!("Initializing runtime...");
     tokio::runtime::Builder::new_multi_thread()
