@@ -373,12 +373,7 @@ impl Default for Config {
                 "./secure/database-password"
             }
             .to_string(),
-            db_namespace: if cfg!(test) {
-                "elysium-test"
-            } else {
-                "elysium"
-            }
-            .to_string(),
+            db_namespace: "elysium".to_string(),
             db_name: "database".to_string(),
             log_file_names: false,
             log_targets: false,

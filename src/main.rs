@@ -20,6 +20,9 @@ mod trace;
 mod user;
 mod utils;
 
+#[cfg(feature = "testing")]
+mod testing;
+
 fn main() {
     println!("Loading configuration...");
     config::init();
@@ -67,6 +70,10 @@ async fn serve() {
     user::create_admin(state.database())
         .await
         .expect("Failed to create admin user");
+
+    // Initialize testing environment if this is a test
+    #[cfg(feature = "testing")]
+    testing::init(&state).await;
 
     tracing::info!("Creating reflection server...");
     let reflection = tonic_reflection::server::Builder::configure()

@@ -24,3 +24,7 @@ nanoid = "0.4.0"
 boml = "2.0.0"
 
 elysium_rust = { git = "https://github.com/elysium-net/elysium_proto.git" }
+
+[features]
+default = []
+testing = []

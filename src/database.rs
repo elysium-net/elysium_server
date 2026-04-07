@@ -31,21 +31,6 @@ impl Database {
             .await
             .expect("Failed to get into database");
 
-        #[cfg(test)]
-        {
-            tracing::info!("Detected test environment. Clearing database...");
-
-            surreal
-                .query(
-                    r#"
-REMOVE TABLE user;
-REMOVE TABLE channel;
-REMOVE TABLE message;"#,
-                )
-                .await
-                .expect("Failed to drop user table");
-        }
-
         let this = Self { surreal };
 
         this.setup().await;
@@ -53,7 +38,7 @@ REMOVE TABLE message;"#,
         this
     }
 
-    async fn setup(&self) {
+    pub async fn setup(&self) {
         self.query(
             r#"
 DEFINE TABLE IF NOT EXISTS user SCHEMALESS;
