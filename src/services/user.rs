@@ -99,12 +99,14 @@ impl Service {
     ) -> Result<UpdateUserAvatarResponse, Error> {
         let database = self.state.database();
 
-        auth::verify(database, &request).await?;
+        let user = auth::verify(database, &request).await?;
 
-        let UpdateUserAvatarRequest { user_id, avatar } = request.into_inner();
-        let avatar = avatar.ok_or(Error::invalid_argument())?;
+        let avatar = request
+            .into_inner()
+            .avatar
+            .ok_or(Error::invalid_argument())?;
 
-        let mut user = user::get(database, &user_id)
+        let mut user = user::get(database, &user.user_id)
             .await?
             .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
 
