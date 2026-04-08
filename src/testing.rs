@@ -1,7 +1,10 @@
 use crate::state::ServerState;
 use crate::{auth, user};
 use elysium_rust::User;
+use elysium_rust::testing::v1::testing_service_server::TestingService;
+use elysium_rust::testing::v1::{ClearStateRequest, ClearStateResponse};
 use elysium_rust::user::v1::UserRole;
+use tonic::{Request, Response, Status};
 
 const NEW_USER_NAME: &str = "user";
 const NEW_USER_PASS: &str = "user";
@@ -11,6 +14,28 @@ const SUPERVISOR_PASS: &str = "supervisor";
 
 const ADMIN_NAME: &str = "admin";
 const ADMIN_PASS: &str = "admin";
+
+pub struct Service {
+    state: ServerState,
+}
+
+impl Service {
+    pub fn new(state: ServerState) -> Self {
+        Self { state }
+    }
+}
+
+#[tonic::async_trait]
+impl TestingService for Service {
+    async fn clear_state(
+        &self,
+        _: Request<ClearStateRequest>,
+    ) -> Result<Response<ClearStateResponse>, Status> {
+        init(&self.state).await;
+
+        Ok(Response::new(ClearStateResponse {}))
+    }
+}
 
 pub async fn init(state: &ServerState) {
     let database = state.database();

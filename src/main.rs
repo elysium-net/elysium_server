@@ -71,10 +71,6 @@ async fn serve() {
         .await
         .expect("Failed to create admin user");
 
-    // Initialize testing environment if this is a test
-    #[cfg(feature = "testing")]
-    testing::init(&state).await;
-
     tracing::info!("Creating reflection server...");
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(elysium_rust::FILE_DESCRIPTOR_SET)
@@ -83,11 +79,22 @@ async fn serve() {
         .expect("Failed to build reflection server");
 
     tracing::info!("Serving Elysium at '{}'...", config.net_address.as_str());
-    Server::builder()
+    let builder = Server::builder()
         .add_service(reflection)
         .add_service(UserServiceServer::new(UserService::new(state.clone())))
         .add_service(ChatServiceServer::new(ChatService::new(state.clone())))
-        .add_service(ResourceServiceServer::new(ResourceService::new(state)))
+        .add_service(ResourceServiceServer::new(ResourceService::new(
+            state.clone(),
+        )));
+
+    #[cfg(feature = "testing")]
+    let builder = builder.add_service(
+        elysium_rust::testing::v1::testing_service_server::TestingServiceServer::new(
+            testing::Service::new(state.clone()),
+        ),
+    );
+
+    builder
         .serve(addr)
         .await
         .expect("Failed to serve elysium service");
