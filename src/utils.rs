@@ -6,7 +6,14 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::Streaming;
+use tonic::codec::CompressionEncoding;
 use tonic::codegen::tokio_stream::{Stream, StreamExt};
+
+/// Maximum size of a message in bytes (4 KiB).
+pub const MAX_MESSAGE_SIZE: usize = 1024 * 4;
+
+/// The compression encoding to use (Gzip).
+pub const COMPRESSION: CompressionEncoding = CompressionEncoding::Gzip;
 
 pub struct SafeStreaming<T>(Streaming<T>);
 

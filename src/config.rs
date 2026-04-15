@@ -51,6 +51,8 @@ pub struct Config {
     pub service_allow_message_update: i32,
     pub service_resource_dir: String,
     pub net_address: String,
+    pub net_rate_limit_replenish: u64,
+    pub net_rate_limit_burst: u32,
     pub rt_max_io_events_per_tick: usize,
     pub rt_thread_keep_alive: u64,
     pub rt_global_queue_interval: u32,
@@ -117,6 +119,16 @@ impl Config {
             .get_string("address")
             .expect("Failed parsing 'network.address' field")
             .to_string();
+
+        let net_rate_limit_replenish = network
+            .get_integer("rate_limit_replenish")
+            .expect("Failed parsing 'network.rate_limit_replenish' field")
+            as u64;
+
+        let net_rate_limit_burst = network
+            .get_integer("rate_limit_burst")
+            .expect("Failed parsing 'network.rate_limit_burst' field")
+            as u32;
 
         let runtime = toml
             .get_table("runtime")
@@ -218,6 +230,8 @@ impl Config {
             service_allow_message_update,
             service_resource_dir,
             net_address,
+            net_rate_limit_replenish,
+            net_rate_limit_burst,
             rt_max_io_events_per_tick,
             rt_thread_keep_alive,
             rt_global_queue_interval,
@@ -253,6 +267,8 @@ impl Config {
             service_allow_message_update,
             service_resource_dir,
             net_address,
+            net_rate_limit_replenish,
+            net_rate_limit_burst,
             rt_max_io_events_per_tick,
             rt_thread_keep_alive,
             rt_global_queue_interval,
@@ -291,6 +307,10 @@ resource_dir = "{service_resource_dir}"
 [network]
 # Address of the gRPC service.
 address = "{net_address}"
+# Rate limit token replenish rate in milliseconds.
+rate_limit_replenish = {net_rate_limit_replenish}
+# Rate limit token burst size.
+rate_limit_burst = {net_rate_limit_burst}
 
 [runtime]
 # Maximum I/O events processed per tick.
@@ -359,6 +379,8 @@ impl Default for Config {
             }
             .to_string(),
             net_address: "127.0.0.1:50051".to_string(),
+            net_rate_limit_replenish: 100,
+            net_rate_limit_burst: 30,
             rt_max_io_events_per_tick: 1024,
             rt_thread_keep_alive: 10,
             rt_global_queue_interval: 31,

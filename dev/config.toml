@@ -17,6 +17,10 @@ resource_dir = "./dev/resources"
 [network]
 # Address of the gRPC service.
 address = "127.0.0.1:50051"
+# Rate limit token replenish rate in milliseconds.
+rate_limit_replenish = 100
+# Rate limit token burst size.
+rate_limit_burst = 30
 
 [runtime]
 # Maximum I/O events processed per tick.
