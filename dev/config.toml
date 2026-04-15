@@ -8,9 +8,9 @@ private_key = "./dev/private-key.pem"
 # Maximum number of search results returned search requests.
 max_search_results = 50
 # Allow message deletion for users with at least this role.
-allow_message_delete = 2
+allow_message_delete = 1
 # Allow message updates for users with at least this role.
-allow_message_update = 2
+allow_message_update = 1
 # Directory where uploaded resources are stored.
 resource_dir = "./dev/resources"
 

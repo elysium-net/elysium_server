@@ -350,8 +350,8 @@ impl Default for Config {
             }
             .to_string(),
             service_max_search_results: 50,
-            service_allow_message_delete: UserRole::Admin as i32,
-            service_allow_message_update: UserRole::Admin as i32,
+            service_allow_message_delete: UserRole::Supervisor as i32,
+            service_allow_message_update: UserRole::Supervisor as i32,
             service_resource_dir: if cfg!(debug_assertions) {
                 "./dev/resources"
             } else {
