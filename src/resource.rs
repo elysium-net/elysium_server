@@ -1,17 +1,24 @@
 use crate::database::Database;
 use crate::error::Error;
-use crate::{chat, user};
+use crate::{chat, config, user};
 use elysium_rust::chat::v1::ChannelPermission;
 use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::{ResourceId, ResourceMeta};
+use std::path::{Path, PathBuf};
 use surrealdb::types::SurrealValue;
 use tokio::fs;
 use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio_util::io::ReaderStream;
 use tonic::codegen::tokio_stream::{Stream, StreamExt};
 
-// 2 KiB
-const CHUNK_SIZE: usize = 1024 * 2;
+/// Chunk Size of a byte data stream.
+pub const CHUNK_SIZE: usize = 1024 * 2;
+
+/// Built-in namespace.
+pub const BUILTIN_NAMESPACE: &str = "elysium";
+
+/// Built-in user icon key.
+pub const DEFAULT_ICON_KEY: &str = "default_icon.png";
 
 pub async fn create(
     database: &Database,
@@ -58,7 +65,9 @@ pub async fn is_download_authorized(
         .await?
         .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
 
-    if let Some(channel) = chat::get_channel(database, &desc.id.namespace).await?
+    if from_builtin(&desc.id).is_some() {
+        authorized = true;
+    } else if let Some(channel) = chat::get_channel(database, &desc.id.namespace).await?
         && channel.members.contains_key(&user.user_id)
     {
         authorized = true;
@@ -87,7 +96,9 @@ pub async fn is_upload_authorized(
     Ok(authorized)
 }
 
-pub async fn read(path: String) -> Result<impl Stream<Item = Result<Vec<u8>, Error>>, Error> {
+pub async fn read(id: ResourceId) -> Result<impl Stream<Item = Result<Vec<u8>, Error>>, Error> {
+    let path = build_path(&id);
+
     let file = fs::OpenOptions::new()
         .read(true)
         .write(false)
@@ -112,9 +123,11 @@ pub async fn read(path: String) -> Result<impl Stream<Item = Result<Vec<u8>, Err
 }
 
 pub async fn write(
-    path: &str,
+    id: ResourceId,
     stream: impl Stream<Item = Result<Vec<u8>, Error>>,
 ) -> Result<(), Error> {
+    let path = build_path(&id);
+
     let file = fs::File::create(path).await.map_err(|e| {
         tracing::error!("Failed opening file: {e}");
         Error::new(ErrorCode::Internal, "Failed to write resource")
@@ -139,8 +152,25 @@ pub async fn write(
     Ok(())
 }
 
+pub fn from_builtin(id: &ResourceId) -> Option<PathBuf> {
+    if id.namespace.as_str() != BUILTIN_NAMESPACE {
+        return None;
+    }
+
+    match id.key.as_str() {
+        DEFAULT_ICON_KEY => Some(PathBuf::from("elysium/default_icon.png")),
+        _ => None,
+    }
+}
+
 fn construct_id(id: &ResourceId) -> String {
     format!("{}:{}", id.namespace, id.key)
+}
+
+fn build_path(id: &ResourceId) -> PathBuf {
+    Path::new(&config::get().service_resource_dir)
+        .join(&id.namespace)
+        .join(&id.key)
 }
 
 #[derive(Clone, Debug, SurrealValue)]

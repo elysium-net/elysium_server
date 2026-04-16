@@ -76,7 +76,7 @@ impl Service {
             )),
         });
 
-        resource::write(&desc.id.key, stream).await?;
+        resource::write(desc.id, stream).await?;
 
         Ok(UploadResponse { error: None })
     }
@@ -102,16 +102,14 @@ impl Service {
             return Err(Error::new(ErrorCode::Unauthorized, "User not in namespace"));
         }
 
-        let stream = resource::read(resource_id.key.clone())
-            .await?
-            .map(|res| match res {
-                Ok(data) => Ok(DownloadResponse {
-                    result: Some(download_response::Result::Data(data.to_vec())),
-                }),
-                Err(err) => Ok(DownloadResponse {
-                    result: Some(download_response::Result::Error(err.into())),
-                }),
-            });
+        let stream = resource::read(resource_id).await?.map(|res| match res {
+            Ok(data) => Ok(DownloadResponse {
+                result: Some(download_response::Result::Data(data.to_vec())),
+            }),
+            Err(err) => Ok(DownloadResponse {
+                result: Some(download_response::Result::Error(err.into())),
+            }),
+        });
 
         Ok(Box::pin(stream))
     }

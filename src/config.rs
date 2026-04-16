@@ -28,7 +28,7 @@ pub fn init() {
         Config::parse(path)
     };
 
-    if std::fs::exists(&config.service_resource_dir)
+    if !std::fs::exists(&config.service_resource_dir)
         .expect("Failed to check if resource directory exists")
     {
         std::fs::create_dir(&config.service_resource_dir)
