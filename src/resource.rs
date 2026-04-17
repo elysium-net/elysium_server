@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::error::Error;
-use crate::{chat, config, user};
+use crate::{chat, config, user, utils};
 use elysium_rust::chat::v1::ChannelPermission;
 use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::{ResourceId, ResourceMeta};
@@ -28,6 +28,13 @@ pub async fn create(
         return Err(Error::new(
             ErrorCode::AlreadyExists,
             "Resource already exists",
+        ));
+    }
+
+    if !utils::is_valid_file_name(&desc.id.namespace) || !utils::is_valid_file_name(&desc.id.key) {
+        return Err(Error::new(
+            ErrorCode::InvalidFormat,
+            "Resource ID can only contain alphanumeric and '-', '_', '.' characters",
         ));
     }
 
