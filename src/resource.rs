@@ -78,6 +78,8 @@ pub async fn is_download_authorized(
         && channel.members.contains_key(&user.user_id)
     {
         authorized = true;
+    } else if is_user_avatar(&desc.id, None) {
+        authorized = true;
     }
 
     Ok(authorized)
@@ -98,6 +100,8 @@ pub async fn is_upload_authorized(
             chat::get_channel_member_perm(database, &channel.channel_id, &user.user_id).await?;
 
         authorized = perm == ChannelPermission::Manager || perm == ChannelPermission::ReadWrite;
+    } else if is_user_avatar(&desc.id, Some(&user.user_id)) && desc.id.key.ends_with(".png") {
+        authorized = true;
     }
 
     Ok(authorized)
@@ -167,6 +171,14 @@ pub fn from_builtin(id: &ResourceId) -> Option<PathBuf> {
     match id.key.as_str() {
         DEFAULT_ICON_KEY => Some(PathBuf::from("elysium/default_icon.png")),
         _ => None,
+    }
+}
+
+pub fn is_user_avatar(id: &ResourceId, user: Option<&str>) -> bool {
+    if let Some(user) = user {
+        id.namespace.as_str() == format!("user.{user}") && id.key.as_str() == "avatar"
+    } else {
+        id.namespace.as_str().starts_with("user.") && id.key.as_str() == "avatar"
     }
 }
 
