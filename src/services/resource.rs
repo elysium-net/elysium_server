@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::resource::ResourceDescriptor;
 use crate::state::ServerState;
 use crate::utils::{SafeStreaming, VecStream};
-use crate::{auth, resource};
+use crate::{auth, resource, utils};
 use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::resource::v1::resource_service_server::ResourceService;
 use elysium_rust::resource::v1::upload_request::Payload;
@@ -39,11 +39,13 @@ impl Service {
         let resource_id =
             ResourceId::try_from(meta_req.resource_id.ok_or(Error::invalid_argument())?)?;
 
-        let meta =
+        let mut meta =
             ResourceMeta::try_from(match meta_req.payload.ok_or(Error::invalid_argument())? {
                 Payload::Meta(meta) => Ok(meta),
                 Payload::Data(_) => Err(Error::invalid_argument()),
             }?)?;
+
+        meta.timestamp = utils::get_timestamp();
 
         let desc = ResourceDescriptor {
             id: resource_id,
@@ -102,6 +104,10 @@ impl Service {
             return Err(Error::new(ErrorCode::Unauthorized, "User not in namespace"));
         }
 
+        let meta_stream = VecStream::once(Ok(DownloadResponse {
+            result: Some(download_response::Result::Meta(desc.meta.into())),
+        }));
+
         let stream = resource::read(resource_id).await?.map(|res| match res {
             Ok(data) => Ok(DownloadResponse {
                 result: Some(download_response::Result::Data(data.to_vec())),
@@ -111,7 +117,7 @@ impl Service {
             }),
         });
 
-        Ok(Box::pin(stream))
+        Ok(Box::pin(meta_stream.chain(stream)))
     }
 }
 
