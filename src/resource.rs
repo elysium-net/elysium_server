@@ -11,9 +11,6 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio_util::io::ReaderStream;
 use tonic::codegen::tokio_stream::{Stream, StreamExt};
 
-/// Chunk Size of a byte data stream.
-pub const CHUNK_SIZE: usize = 1024 * 2;
-
 /// Built-in namespace.
 pub const BUILTIN_NAMESPACE: &str = "elysium";
 
@@ -122,7 +119,7 @@ pub async fn read(id: ResourceId) -> Result<impl Stream<Item = Result<Vec<u8>, E
             Error::new(ErrorCode::Internal, "Failed to read resource")
         })?;
 
-    let stream = ReaderStream::with_capacity(file, CHUNK_SIZE).map(|res| {
+    let stream = ReaderStream::with_capacity(file, elysium_rust::RESOURCE_CHUNK_SIZE).map(|res| {
         res.map_err(|err| {
             tracing::error!("Failed reading file: {err}");
             Error::new(ErrorCode::Internal, "Failed to read resource")
@@ -146,7 +143,7 @@ pub async fn write(
 
     tokio::pin!(stream);
 
-    let mut buf = BufWriter::with_capacity(CHUNK_SIZE, file);
+    let mut buf = BufWriter::with_capacity(elysium_rust::RESOURCE_CHUNK_SIZE, file);
 
     while let Some(data) = stream.next().await {
         buf.write_all(&data?).await.map_err(|e| {

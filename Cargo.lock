@@ -596,9 +596,9 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "constant_time_eq"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
+checksum = "7dab3fe76c1571ecd5cfe878b61bce3fedf4adbde5d8a8653b2a7956ffd14628"
 
 [[package]]
 name = "core-foundation"
@@ -959,7 +959,7 @@ dependencies = [
 [[package]]
 name = "elysium_rust"
 version = "0.1.0"
-source = "git+https://github.com/elysium-net/elysium_proto.git#8b8110cac96c6c03e928b7c55ddbf78505c2c8db"
+source = "git+https://github.com/elysium-net/elysium_proto.git#3b5aa1a93227a37f3c7f1ba27aa41163198943f5"
 dependencies = [
  "prost",
  "serde",
@@ -4780,9 +4780,9 @@ dependencies = [
 
 [[package]]
 name = "typenum"
-version = "1.19.0"
+version = "1.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562d481066bde0658276a35467c4af00bdc6ee726305698a55b86e61d7ad82bb"
+checksum = "40ce102ab67701b8526c123c1bab5cbe42d7040ccfd0f64af1a385808d2f43de"
 
 [[package]]
 name = "ulid"
