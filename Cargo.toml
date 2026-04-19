@@ -28,4 +28,4 @@ elysium_rust = { git = "https://github.com/elysium-net/elysium_proto.git" }
 
 [features]
 default = []
-testing = ["elysium_rust/testing"]
+testing = []

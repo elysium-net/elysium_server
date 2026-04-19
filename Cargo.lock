@@ -959,7 +959,7 @@ dependencies = [
 [[package]]
 name = "elysium_rust"
 version = "0.1.0"
-source = "git+https://github.com/elysium-net/elysium_proto.git#3b5aa1a93227a37f3c7f1ba27aa41163198943f5"
+source = "git+https://github.com/elysium-net/elysium_proto.git#2b51cac2172fbcee67c2ee3970a8b3e3fc8fabc2"
 dependencies = [
  "prost",
  "serde",

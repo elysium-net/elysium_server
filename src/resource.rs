@@ -1,5 +1,6 @@
 use crate::database::Database;
 use crate::error::Error;
+use crate::utils::RESOURCE_CHUNK_SIZE;
 use crate::{chat, config, user, utils};
 use elysium_rust::chat::v1::ChannelPermission;
 use elysium_rust::common::v1::ErrorCode;
@@ -119,7 +120,7 @@ pub async fn read(id: ResourceId) -> Result<impl Stream<Item = Result<Vec<u8>, E
             Error::new(ErrorCode::Internal, "Failed to read resource")
         })?;
 
-    let stream = ReaderStream::with_capacity(file, elysium_rust::RESOURCE_CHUNK_SIZE).map(|res| {
+    let stream = ReaderStream::with_capacity(file, RESOURCE_CHUNK_SIZE).map(|res| {
         res.map_err(|err| {
             tracing::error!("Failed reading file: {err}");
             Error::new(ErrorCode::Internal, "Failed to read resource")
@@ -143,7 +144,7 @@ pub async fn write(
 
     tokio::pin!(stream);
 
-    let mut buf = BufWriter::with_capacity(elysium_rust::RESOURCE_CHUNK_SIZE, file);
+    let mut buf = BufWriter::with_capacity(RESOURCE_CHUNK_SIZE, file);
 
     while let Some(data) = stream.next().await {
         buf.write_all(&data?).await.map_err(|e| {

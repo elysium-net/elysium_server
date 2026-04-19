@@ -1,8 +1,9 @@
 use crate::connect_info::ConnectInfoInterceptor;
-use crate::services::{ChatService, ResourceService, UserService};
+use crate::services::{ChatService, GeneralService, ResourceService, UserService};
 use crate::state::ServerState;
 use crate::utils::{COMPRESSION, MAX_MESSAGE_SIZE};
 use elysium_rust::chat::v1::chat_service_server::ChatServiceServer;
+use elysium_rust::general::v1::general_service_server::GeneralServiceServer;
 use elysium_rust::resource::v1::resource_service_server::ResourceServiceServer;
 use elysium_rust::user::v1::user_service_server::UserServiceServer;
 use std::net::SocketAddr;
@@ -26,9 +27,6 @@ mod state;
 mod trace;
 mod user;
 mod utils;
-
-#[cfg(feature = "testing")]
-mod testing;
 
 fn main() {
     println!("Loading configuration...");
@@ -98,6 +96,13 @@ async fn serve() {
         ))
         .add_service(reflection)
         .add_service(
+            GeneralServiceServer::new(GeneralService::new(state.clone()))
+                .accept_compressed(COMPRESSION)
+                .send_compressed(COMPRESSION)
+                .max_decoding_message_size(MAX_MESSAGE_SIZE)
+                .max_encoding_message_size(MAX_MESSAGE_SIZE),
+        )
+        .add_service(
             UserServiceServer::new(UserService::new(state.clone()))
                 .accept_compressed(COMPRESSION)
                 .send_compressed(COMPRESSION)
@@ -118,13 +123,6 @@ async fn serve() {
                 .max_decoding_message_size(MAX_MESSAGE_SIZE)
                 .max_encoding_message_size(MAX_MESSAGE_SIZE),
         );
-
-    #[cfg(feature = "testing")]
-    let builder = builder.add_service(
-        elysium_rust::testing::v1::testing_service_server::TestingServiceServer::new(
-            testing::Service::new(state.clone()),
-        ),
-    );
 
     builder
         .serve(addr)

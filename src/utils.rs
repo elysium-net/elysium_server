@@ -12,6 +12,9 @@ use tonic::codegen::tokio_stream::{Stream, StreamExt};
 /// Maximum size of a message in bytes (4 KiB).
 pub const MAX_MESSAGE_SIZE: usize = 1024 * 4;
 
+/// Size of a resource chunk in bytes (2 KiB).
+pub const RESOURCE_CHUNK_SIZE: usize = 1024 * 2;
+
 /// The compression encoding to use (Gzip).
 pub const COMPRESSION: CompressionEncoding = CompressionEncoding::Gzip;
 
