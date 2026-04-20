@@ -18,6 +18,8 @@ pub const RESOURCE_CHUNK_SIZE: usize = 1024 * 2;
 /// The compression encoding to use (Gzip).
 pub const COMPRESSION: CompressionEncoding = CompressionEncoding::Gzip;
 
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub fn is_valid_file_name(s: &str) -> bool {
     s.chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '.' || c == '_')

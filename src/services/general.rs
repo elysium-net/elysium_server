@@ -1,6 +1,6 @@
-use crate::config;
 use crate::state::ServerState;
 use crate::utils::RESOURCE_CHUNK_SIZE;
+use crate::{config, utils};
 use elysium_rust::general::v1::general_service_server::GeneralService;
 use elysium_rust::general::v1::{
     ClearStateRequest, ClearStateResponse, GetConfigRequest, GetConfigResponse,
@@ -42,6 +42,7 @@ impl GeneralService for Service {
         let config = config::get();
 
         Ok(Response::new(GetConfigResponse {
+            version: utils::VERSION.to_string(),
             resource_chunk_size: RESOURCE_CHUNK_SIZE as u32,
             allow_message_delete: config.service_allow_message_delete,
             allow_message_update: config.service_allow_message_update,
