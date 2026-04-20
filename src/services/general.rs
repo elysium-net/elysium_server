@@ -76,7 +76,8 @@ async fn clear_state(state: &ServerState) {
             r#"
 REMOVE TABLE user;
 REMOVE TABLE channel;
-REMOVE TABLE message;"#,
+REMOVE TABLE message;
+REMOVE TABLE resource;"#,
         )
         .await
         .expect("Failed to drop user table");
