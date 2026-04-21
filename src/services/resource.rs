@@ -48,7 +48,7 @@ impl Service {
         meta.timestamp = utils::get_timestamp();
 
         let desc = ResourceDescriptor {
-            id: resource_id,
+            resource_id,
             meta,
             user_id: user.user_id.clone(),
         };
@@ -60,7 +60,7 @@ impl Service {
             ));
         }
 
-        let desc = if let Some(desc) = resource::get(database, &desc.id).await? {
+        let desc = if let Some(desc) = resource::get(database, &desc.resource_id).await? {
             desc
         } else {
             resource::create(database, desc).await?
@@ -78,7 +78,7 @@ impl Service {
             )),
         });
 
-        resource::write(desc.id, stream).await?;
+        resource::write(desc.resource_id, stream).await?;
 
         Ok(UploadResponse { error: None })
     }

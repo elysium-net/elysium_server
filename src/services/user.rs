@@ -51,7 +51,7 @@ impl Service {
             )
         })?;
 
-        user::create(database, User::try_from(user)?).await?;
+        user::create(database, User::try_from(user.clone())?).await?;
 
         Ok(CreateUserResponse { error: None })
     }

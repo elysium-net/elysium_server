@@ -22,14 +22,16 @@ pub async fn create(
     database: &Database,
     desc: ResourceDescriptor,
 ) -> Result<ResourceDescriptor, Error> {
-    if exists(database, &desc.id).await? {
+    if exists(database, &desc.resource_id).await? {
         return Err(Error::new(
             ErrorCode::AlreadyExists,
             "Resource already exists",
         ));
     }
 
-    if !utils::is_valid_file_name(&desc.id.namespace) || !utils::is_valid_file_name(&desc.id.key) {
+    if !utils::is_valid_file_name(&desc.resource_id.namespace)
+        || !utils::is_valid_file_name(&desc.resource_id.key)
+    {
         return Err(Error::new(
             ErrorCode::InvalidFormat,
             "Resource ID can only contain alphanumeric and '-', '_', '.' characters",
@@ -37,7 +39,7 @@ pub async fn create(
     }
 
     let desc: Option<ResourceDescriptor> = database
-        .insert(("resource", construct_id(&desc.id)))
+        .insert(("resource", construct_id(&desc.resource_id)))
         .content(desc)
         .await?;
 
@@ -70,13 +72,13 @@ pub async fn is_download_authorized(
         .await?
         .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
 
-    if from_builtin(&desc.id).is_some() {
+    if from_builtin(&desc.resource_id).is_some() {
         authorized = true;
-    } else if let Some(channel) = chat::get_channel(database, &desc.id.namespace).await?
+    } else if let Some(channel) = chat::get_channel(database, &desc.resource_id.namespace).await?
         && channel.members.contains_key(&user.user_id)
     {
         authorized = true;
-    } else if is_user_avatar(&desc.id, None) {
+    } else if is_user_avatar(&desc.resource_id, None) {
         authorized = true;
     }
 
@@ -93,12 +95,14 @@ pub async fn is_upload_authorized(
         .await?
         .ok_or(Error::new(ErrorCode::NotFound, "User not found"))?;
 
-    if let Some(channel) = chat::get_channel(database, &desc.id.namespace).await? {
+    if let Some(channel) = chat::get_channel(database, &desc.resource_id.namespace).await? {
         let perm =
             chat::get_channel_member_perm(database, &channel.channel_id, &user.user_id).await?;
 
         authorized = perm == ChannelPermission::Manager || perm == ChannelPermission::ReadWrite;
-    } else if is_user_avatar(&desc.id, Some(&user.user_id)) && desc.id.key.ends_with(".png") {
+    } else if is_user_avatar(&desc.resource_id, Some(&user.user_id))
+        && desc.resource_id.key.ends_with(".png")
+    {
         authorized = true;
     }
 
@@ -116,7 +120,7 @@ pub async fn read(id: ResourceId) -> Result<impl Stream<Item = Result<Vec<u8>, E
         .open(path)
         .await
         .map_err(|e| {
-            tracing::error!("Failed reading file: {e}");
+            tracing::error!("Failed opening read file: {e}");
             Error::new(ErrorCode::Internal, "Failed to read resource")
         })?;
 
@@ -137,8 +141,12 @@ pub async fn write(
 ) -> Result<(), Error> {
     let path = build_path(&id);
 
+    fs::create_dir_all(path.parent().expect("Failed to get parent directory"))
+        .await
+        .expect("Failed to create directory");
+
     let file = fs::File::create(path).await.map_err(|e| {
-        tracing::error!("Failed opening file: {e}");
+        tracing::error!("Failed opening write file: {e}");
         Error::new(ErrorCode::Internal, "Failed to write resource")
     })?;
 
@@ -174,9 +182,16 @@ pub fn from_builtin(id: &ResourceId) -> Option<PathBuf> {
 
 pub fn is_user_avatar(id: &ResourceId, user: Option<&str>) -> bool {
     if let Some(user) = user {
-        id.namespace.as_str() == format!("user.{user}") && id.key.as_str() == "avatar"
+        id.namespace.as_str() == format!("user.{user}") && id.key.as_str() == "avatar.png"
     } else {
-        id.namespace.as_str().starts_with("user.") && id.key.as_str() == "avatar"
+        id.namespace.as_str().starts_with("user.") && id.key.as_str() == "avatar.png"
+    }
+}
+
+pub fn build_user_avatar_id(user: &str) -> ResourceId {
+    ResourceId {
+        namespace: format!("user.{user}"),
+        key: "avatar.png".to_string(),
     }
 }
 
@@ -192,7 +207,7 @@ fn build_path(id: &ResourceId) -> PathBuf {
 
 #[derive(Clone, Debug, SurrealValue)]
 pub struct ResourceDescriptor {
-    pub id: ResourceId,
+    pub resource_id: ResourceId,
     pub meta: ResourceMeta,
     pub user_id: String,
 }

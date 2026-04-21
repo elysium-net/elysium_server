@@ -95,7 +95,7 @@ REMOVE TABLE resource;"#,
             password: crate::auth::hash(TEST_NEW_USER_PASS.to_string())
                 .expect("Failed to hash new user password"),
             role: elysium_rust::user::v1::UserRole::UserUnspecified as i32,
-            icon: crate::user::default_icon(),
+            icon: crate::resource::build_user_avatar_id(TEST_NEW_USER_NAME),
         },
     )
     .await
@@ -111,7 +111,7 @@ REMOVE TABLE resource;"#,
             password: crate::auth::hash(TEST_SUPERVISOR_PASS.to_string())
                 .expect("Failed to hash supervisor password"),
             role: elysium_rust::user::v1::UserRole::Supervisor as i32,
-            icon: crate::user::default_icon(),
+            icon: crate::resource::build_user_avatar_id(TEST_SUPERVISOR_NAME),
         },
     )
     .await
@@ -127,7 +127,7 @@ REMOVE TABLE resource;"#,
             password: crate::auth::hash(TEST_ADMIN_PASS.to_string())
                 .expect("Failed to hash admin password"),
             role: elysium_rust::user::v1::UserRole::Admin as i32,
-            icon: crate::user::default_icon(),
+            icon: crate::resource::build_user_avatar_id(TEST_ADMIN_NAME),
         },
     )
     .await

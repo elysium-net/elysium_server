@@ -1,14 +1,48 @@
 use crate::database::Database;
 use crate::error::Error;
-use crate::{auth, config};
+use crate::resource::ResourceDescriptor;
+use crate::utils::VecStream;
+use crate::{auth, config, resource, utils};
 use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::user::v1::{UserProfile, UserRole};
-use elysium_rust::{ResourceId, User};
+use elysium_rust::{ResourceMeta, User};
+use tonic::codegen::tokio_stream::StreamExt;
 
 pub async fn create(database: &Database, user: User) -> Result<(), Error> {
     if exists(database, user.user_id.as_str()).await? {
         return Err(Error::new(ErrorCode::AlreadyExists, "User already exists"));
     }
+
+    // Read default user icon
+    let default_icon = resource::read(elysium_rust::DEFAULT_USER_ICON.clone())
+        .await?
+        .collect::<Vec<_>>()
+        .await;
+
+    let length = default_icon
+        .iter()
+        .map(|v| v.as_ref().expect("Failed to get default icon data").len())
+        .sum::<usize>();
+
+    let icon_id = resource::build_user_avatar_id(&user.user_id);
+
+    // Create user icon
+    resource::create(
+        database,
+        ResourceDescriptor {
+            resource_id: icon_id.clone(),
+            meta: ResourceMeta {
+                size: length as i32,
+                timestamp: utils::get_timestamp(),
+                metadata: Default::default(),
+            },
+            user_id: user.user_id.clone(),
+        },
+    )
+    .await?;
+
+    // Upload default user icon
+    resource::write(icon_id, VecStream::new(default_icon)).await?;
 
     let _: Option<User> = database
         .create(("user", user.user_id.as_str()))
@@ -102,7 +136,7 @@ pub async fn create_admin(database: &Database) -> Result<(), Error> {
                 email: "".to_string(),
                 password: auth::hash("admin".to_string()).expect("Failed to hash password"),
                 role: UserRole::Admin as i32,
-                icon: default_icon(),
+                icon: resource::build_user_avatar_id("admin"),
             },
         )
         .await?;
@@ -113,11 +147,4 @@ pub async fn create_admin(database: &Database) -> Result<(), Error> {
     }
 
     Ok(())
-}
-
-pub fn default_icon() -> ResourceId {
-    ResourceId {
-        key: "default_icon".to_string(),
-        namespace: "elysium".to_string(),
-    }
 }
