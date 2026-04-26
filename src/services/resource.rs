@@ -7,7 +7,8 @@ use elysium_rust::common::v1::ErrorCode;
 use elysium_rust::resource::v1::resource_service_server::ResourceService;
 use elysium_rust::resource::v1::upload_request::Payload;
 use elysium_rust::resource::v1::{
-    DownloadRequest, DownloadResponse, UploadRequest, UploadResponse, download_response,
+    DownloadRequest, DownloadResponse, GetResourceMetaRequest, GetResourceMetaResponse,
+    UploadRequest, UploadResponse, download_response, get_resource_meta_response,
 };
 use elysium_rust::{ResourceId, ResourceMeta};
 use tonic::codegen::BoxStream;
@@ -101,7 +102,7 @@ impl Service {
             .ok_or(Error::new(ErrorCode::NotFound, "Resource not found"))?;
 
         if !resource::is_download_authorized(database, &desc, &user.user_id).await? {
-            return Err(Error::new(ErrorCode::Unauthorized, "User not in namespace"));
+            return Err(Error::new(ErrorCode::Unauthorized, "User not authorized"));
         }
 
         let meta_stream = VecStream::once(Ok(DownloadResponse {
@@ -118,6 +119,33 @@ impl Service {
         });
 
         Ok(Box::pin(meta_stream.chain(stream)))
+    }
+
+    async fn _get_resource_meta(
+        &self,
+        request: Request<GetResourceMetaRequest>,
+    ) -> Result<GetResourceMetaResponse, Error> {
+        let database = self.state.database();
+
+        let user = auth::verify(database, &request).await?;
+        let resource_id = ResourceId::try_from(
+            request
+                .into_inner()
+                .resource_id
+                .ok_or(Error::invalid_argument())?,
+        )?;
+
+        let desc = resource::get(database, &resource_id)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "Resource not found"))?;
+
+        if !resource::is_download_authorized(database, &desc, &user.user_id).await? {
+            return Err(Error::new(ErrorCode::Unauthorized, "User not authorized"));
+        }
+
+        Ok(GetResourceMetaResponse {
+            result: Some(get_resource_meta_response::Result::Meta(desc.meta.into())),
+        })
     }
 }
 
@@ -148,6 +176,20 @@ impl ResourceService for Service {
                 result: Some(download_response::Result::Error(err.into())),
             })))
         });
+
+        Ok(Response::new(resp))
+    }
+
+    async fn get_resource_meta(
+        &self,
+        request: Request<GetResourceMetaRequest>,
+    ) -> Result<Response<GetResourceMetaResponse>, Status> {
+        let resp = self
+            ._get_resource_meta(request)
+            .await
+            .unwrap_or_else(|err| GetResourceMetaResponse {
+                result: Some(get_resource_meta_response::Result::Error(err.into())),
+            });
 
         Ok(Response::new(resp))
     }
