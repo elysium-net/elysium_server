@@ -13,36 +13,39 @@ pub async fn create(database: &Database, user: User) -> Result<(), Error> {
         return Err(Error::new(ErrorCode::AlreadyExists, "User already exists"));
     }
 
-    // Read default user icon
-    let default_icon = resource::read(elysium_rust::DEFAULT_USER_ICON.clone())
-        .await?
-        .collect::<Vec<_>>()
-        .await;
+    // Read and write default user icon
+    {
+        let mut icon_stream = resource::read(elysium_rust::DEFAULT_USER_ICON.clone()).await?;
 
-    let length = default_icon
-        .iter()
-        .map(|v| v.as_ref().expect("Failed to get default icon data").len())
-        .sum::<usize>();
+        let mut chunks: Vec<Result<Vec<u8>, Error>> = Vec::new();
+        let mut length = 0;
 
-    let icon_id = resource::build_user_avatar_id(&user.user_id);
+        while let Some(chunk) = icon_stream.next().await {
+            let chunk = chunk?;
+            length += chunk.len();
+            chunks.push(Ok(chunk));
+        }
 
-    // Create user icon
-    resource::create(
-        database,
-        ResourceDescriptor {
-            resource_id: icon_id.clone(),
-            meta: ResourceMeta {
-                size: length as i32,
-                timestamp: utils::get_timestamp(),
-                metadata: Default::default(),
+        let icon_id = resource::build_user_avatar_id(&user.user_id);
+
+        // Create user icon
+        resource::create(
+            database,
+            ResourceDescriptor {
+                resource_id: icon_id.clone(),
+                meta: ResourceMeta {
+                    size: length as i32,
+                    timestamp: utils::get_timestamp(),
+                    metadata: Default::default(),
+                },
+                user_id: user.user_id.clone(),
             },
-            user_id: user.user_id.clone(),
-        },
-    )
-    .await?;
+        )
+        .await?;
 
-    // Upload default user icon
-    resource::write(icon_id, VecStream::new(default_icon)).await?;
+        // Upload default user icon
+        resource::write(icon_id, VecStream::new(chunks)).await?;
+    }
 
     let _: Option<User> = database
         .create(("user", user.user_id.as_str()))

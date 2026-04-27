@@ -75,9 +75,10 @@ impl<T> DerefMut for SafeStreaming<T> {
     }
 }
 
-pub struct VecStream<T>(Vec<T>);
+// TODO: use VecDequeue or something else instead
+pub struct VecStream<T: Unpin>(Vec<T>);
 
-impl<T> VecStream<T> {
+impl<T: Unpin> VecStream<T> {
     pub fn new(vec: Vec<T>) -> Self {
         Self(vec)
     }
@@ -87,15 +88,16 @@ impl<T> VecStream<T> {
     }
 }
 
-impl<T> Stream for VecStream<T> {
+impl<T: Unpin> Stream for VecStream<T> {
     type Item = T;
 
     fn poll_next(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        // Safe because `Vec<T>` is `Unpin`
-        unsafe {
-            let unpinned = self.get_unchecked_mut();
+        let this = self.get_mut();
 
-            Poll::Ready(unpinned.0.pop())
+        if this.0.is_empty() {
+            return Poll::Ready(None);
         }
+
+        Poll::Ready(Some(this.0.remove(0)))
     }
 }

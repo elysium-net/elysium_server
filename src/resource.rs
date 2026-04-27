@@ -155,7 +155,7 @@ pub async fn write(
     let mut buf = BufWriter::with_capacity(RESOURCE_CHUNK_SIZE, file);
 
     while let Some(data) = stream.next().await {
-        buf.write_all(&data?).await.map_err(|e| {
+        buf.write(&data?).await.map_err(|e| {
             tracing::error!("Failed writing file: {e}");
             Error::new(ErrorCode::Internal, "Failed to write resource")
         })?;
