@@ -70,21 +70,17 @@ pub async fn verify<T>(database: &Database, req: &Request<T>) -> Result<User, Er
         let token = String::from_utf8_lossy(token.as_bytes());
         let claim =
             jsonwebtoken::decode::<Auth>(token.as_bytes(), key, &Validation::new(Algorithm::EdDSA))
-                .map_err(|_| Error::new(ErrorCode::Unauthorized, "Invalid token"))?;
+                .map_err(|err| match err.kind() {
+                    jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+                        Error::new(ErrorCode::Unauthorized, "Token expired")
+                    }
 
-        let now = SystemTime::UNIX_EPOCH
-            .elapsed()
-            .expect("Failed to get current time")
-            .as_secs()
-            / 3600;
+                    _ => Error::new(ErrorCode::Unauthorized, "Invalid token"),
+                })?;
 
-        if claim.claims.exp > now {
-            Err(Error::new(ErrorCode::Unauthorized, "Token expired"))
-        } else {
-            user::get(database, &claim.claims.user_id)
-                .await?
-                .ok_or(Error::new(ErrorCode::NotFound, "User not found"))
-        }
+        user::get(database, &claim.claims.user_id)
+            .await?
+            .ok_or(Error::new(ErrorCode::NotFound, "User not found"))
     } else {
         Err(Error::new(ErrorCode::Unauthorized, "Missing token"))
     }
@@ -94,12 +90,11 @@ pub async fn auth(database: &Database, user_id: String, password: String) -> Res
     let user = user::get(database, &user_id).await?;
     let auth = Auth {
         user_id,
-        exp: (SystemTime::UNIX_EPOCH
+        exp: SystemTime::UNIX_EPOCH
             .elapsed()
             .expect("Failed to get current time")
             .as_secs()
-            / 3600)
-            + config::get().service_token_expiration,
+            + (config::get().service_token_expiration * 3600),
     };
 
     let (key, _) = keys();
