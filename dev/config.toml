@@ -13,6 +13,8 @@ allow_message_delete = 1
 allow_message_update = 1
 # Directory where uploaded resources are stored.
 resource_dir = "./dev/resources"
+# Token expiration time in hours.
+token_expiration = 168
 
 [network]
 # Address of the gRPC service.

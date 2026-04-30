@@ -75,7 +75,8 @@ pub async fn verify<T>(database: &Database, req: &Request<T>) -> Result<User, Er
         let now = SystemTime::UNIX_EPOCH
             .elapsed()
             .expect("Failed to get current time")
-            .as_secs();
+            .as_secs()
+            / 3600;
 
         if claim.claims.exp > now {
             Err(Error::new(ErrorCode::Unauthorized, "Token expired"))
@@ -93,10 +94,12 @@ pub async fn auth(database: &Database, user_id: String, password: String) -> Res
     let user = user::get(database, &user_id).await?;
     let auth = Auth {
         user_id,
-        exp: SystemTime::UNIX_EPOCH
+        exp: (SystemTime::UNIX_EPOCH
             .elapsed()
             .expect("Failed to get current time")
-            .as_secs(),
+            .as_secs()
+            / 3600)
+            + config::get().service_token_expiration,
     };
 
     let (key, _) = keys();

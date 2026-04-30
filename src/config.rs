@@ -46,6 +46,7 @@ pub fn get<'a>() -> &'a Config {
 pub struct Config {
     pub service_public_key: String,
     pub service_private_key: String,
+    pub service_token_expiration: u64,
     pub service_max_search_results: usize,
     pub service_allow_message_delete: i32,
     pub service_allow_message_update: i32,
@@ -110,6 +111,11 @@ impl Config {
             .get_string("resource_dir")
             .expect("Failed parsing 'service.resource_dir' field")
             .to_string();
+
+        let service_token_expiration = service
+            .get_integer("token_expiration")
+            .expect("Failed parsing 'service.token_expiration' field")
+            as u64;
 
         let network = toml
             .get_table("network")
@@ -229,6 +235,7 @@ impl Config {
             service_allow_message_delete,
             service_allow_message_update,
             service_resource_dir,
+            service_token_expiration,
             net_address,
             net_rate_limit_replenish,
             net_rate_limit_burst,
@@ -266,6 +273,7 @@ impl Config {
             service_allow_message_delete,
             service_allow_message_update,
             service_resource_dir,
+            service_token_expiration,
             net_address,
             net_rate_limit_replenish,
             net_rate_limit_burst,
@@ -303,6 +311,8 @@ allow_message_delete = {service_allow_message_delete}
 allow_message_update = {service_allow_message_update}
 # Directory where uploaded resources are stored.
 resource_dir = "{service_resource_dir}"
+# Token expiration time in hours.
+token_expiration = {service_token_expiration}
 
 [network]
 # Address of the gRPC service.
@@ -378,6 +388,7 @@ impl Default for Config {
                 "./resources"
             }
             .to_string(),
+            service_token_expiration: 168,
             net_address: "127.0.0.1:50051".to_string(),
             net_rate_limit_replenish: 100,
             net_rate_limit_burst: 30,
